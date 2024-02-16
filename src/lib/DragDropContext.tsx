@@ -1,4 +1,4 @@
-import React, {createContext, useContext, useEffect, useState} from 'react'
+import React, {createContext, useContext, useState} from 'react'
 import DOMUtils from './DOMUtils'
 
 export interface PlaceholderInfo {
@@ -10,6 +10,7 @@ interface DragDropData {
 	placeholder: React.ReactElement
 	recalculatePlaceholder: (draggable: HTMLElement, type: string) => void
 	placeholderInfo: PlaceholderInfo
+	setPlaceholderInfo: (info: PlaceholderInfo) => void
 	updateActivePlaceholder: (e: React.DragEvent<HTMLDivElement>, columnId: string) => void
 	clearPlaceholders: () => void
 }
@@ -36,6 +37,7 @@ export const DragDropContext: React.FC<{
 		recalculatePlaceholder: (draggable: HTMLElement, type: string) =>
 			setCalculatedPlaceholder(__placeholder ? __placeholder(draggable, type) : <></>),
 		placeholderInfo: placeholderInfo,
+		setPlaceholderInfo: (info: PlaceholderInfo) => setPlaceholderInfo((old) => info),
 		updateActivePlaceholder: (e: React.DragEvent<HTMLDivElement>, columnId: string) =>
 			setPlaceholderInfo(() => DOMUtils.getVisiblePlaceholderInfo(e, columnId)),
 		clearPlaceholders: () => setPlaceholderInfo((prevInfo) => ({...prevInfo, visibleId: ''})),

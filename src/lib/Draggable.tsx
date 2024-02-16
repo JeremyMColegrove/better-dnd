@@ -1,6 +1,7 @@
 import React, {useEffect, useRef, useState} from 'react'
 import {useDragContext} from './DragDropContext'
 import DOMUtils from './DOMUtils'
+import useRandomID from './randomId.hook'
 
 interface Props {
 	children: (provided: {draggableProps: {[x: string]: any}}, snapshot: {isDragging: boolean}) => React.ReactElement
@@ -14,7 +15,7 @@ interface Props {
 
 function Draggable(props: Props) {
 	const dragContext = useDragContext()
-
+	const myId = useRandomID()
 	const [dragging, setDragging] = useState<boolean>(false)
 	const [refresh, setRefresh] = useState<number>(1)
 	const childRef = useRef<HTMLElement>()
@@ -25,14 +26,18 @@ function Draggable(props: Props) {
 		// re-calculate placeholder
 		childRef.current && dragContext.recalculatePlaceholder(childRef.current, props.type)
 
+		// pre-set the placeholder to the element below this one
+
 		// id of the draggable
 		e.dataTransfer.setData('application/draggable-id', props.dragId)
 
 		// set previous droppable id
 		e.dataTransfer.setData('application/draggable-from-columnid', props.draggableProps.columnId)
 
+		const indexOfItem = DOMUtils.getIndexOfItem(props.draggableProps.columnId, myId)
+
 		// set previous droppable index
-		e.dataTransfer.setData('application/draggable-from-index', DOMUtils.getIndexOfItem(props.draggableProps.columnId, props.dragId).toString())
+		e.dataTransfer.setData('application/draggable-from-index', indexOfItem.toString())
 
 		if (props.type) {
 			e.dataTransfer.setData(`application/draggable-for-${props.type}`, 'true')
@@ -55,7 +60,7 @@ function Draggable(props: Props) {
 
 	return (
 		<>
-			{dragContext.placeholderInfo.visibleId === props.dragId && dragContext.placeholder}
+			{dragContext.placeholderInfo.visibleId === myId && dragContext.placeholder}
 			{props.children(
 				{
 					draggableProps: {
@@ -67,7 +72,7 @@ function Draggable(props: Props) {
 						ref: childRef,
 						key: refresh,
 						['data-columnid']: props.draggableProps.columnId,
-						id: props.dragId,
+						id: myId,
 					},
 				},
 				{isDragging: dragging},

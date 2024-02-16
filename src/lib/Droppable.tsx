@@ -2,6 +2,7 @@ import React, {useEffect, useRef, useState} from 'react'
 import {useDragContext} from './DragDropContext'
 import DOMUtils from './DOMUtils'
 import useDragster from './Dragster.hook'
+import useRandomID from './randomId.hook'
 
 export interface DropProps {
 	dragId: string
@@ -32,16 +33,15 @@ interface Props {
 function Droppable(props: Props) {
 	const dragContext = useDragContext()
 	const [draggingOver, setDraggingOver] = useState<boolean>(false)
+	const myId = useRandomID()
 
 	const prepareDrop = (e: React.DragEvent<HTMLDivElement>) => {
-		e.preventDefault()
-		e.stopPropagation()
 		const payloadId = e.dataTransfer.getData('application/draggable-id')
 		const fromColumnId = e.dataTransfer.getData('application/draggable-from-columnid')
 		const fromIndex = e.dataTransfer.getData('application/draggable-from-index')
 
 		// recalculate div info
-		const info = DOMUtils.getVisiblePlaceholderInfo(e, props.droppableId)
+		const info = DOMUtils.getVisiblePlaceholderInfo(e, myId)
 
 		const to = {droppableId: props.droppableId, index: info.index}
 
@@ -54,7 +54,7 @@ function Droppable(props: Props) {
 
 	const onDragOver = (e: React.DragEvent<HTMLDivElement>) => {
 		// refresh the dragContext placeholderInfo so the correct draggable shows its placeholder
-		dragContext.updateActivePlaceholder(e, props.droppableId)
+		dragContext.updateActivePlaceholder(e, myId)
 		if (!draggingOver) setDraggingOver(true)
 	}
 
@@ -74,8 +74,8 @@ function Droppable(props: Props) {
 	return props.children(
 		{
 			droppableProps: {ref: elementRef},
-			draggableProps: {columnId: props.droppableId},
-			placeholder: dragContext.placeholderInfo.visibleId === props.droppableId ? dragContext.placeholder : <></>,
+			draggableProps: {columnId: myId},
+			placeholder: dragContext.placeholderInfo.visibleId === myId ? dragContext.placeholder : <></>,
 		},
 		{isDraggingOver: draggingOver},
 	)
