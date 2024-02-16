@@ -1,4 +1,4 @@
-import React, {useRef, useState} from 'react'
+import React, {useEffect, useRef, useState} from 'react'
 import {useDragContext} from './DragDropContext'
 import DOMUtils from './DOMUtils'
 import useDragster from './Dragster.hook'
@@ -32,18 +32,24 @@ interface Props {
 function Droppable(props: Props) {
 	const dragContext = useDragContext()
 	const [draggingOver, setDraggingOver] = useState<boolean>(false)
+
 	const prepareDrop = (e: React.DragEvent<HTMLDivElement>) => {
+		e.preventDefault()
+		e.stopPropagation()
 		const payloadId = e.dataTransfer.getData('application/draggable-id')
 		const fromColumnId = e.dataTransfer.getData('application/draggable-from-columnid')
 		const fromIndex = e.dataTransfer.getData('application/draggable-from-index')
 
-		// prepare info for the drop
+		// recalculate div info
+		const info = DOMUtils.getVisiblePlaceholderInfo(e, props.droppableId)
 
-		const to = {droppableId: props.droppableId, index: dragContext.placeholderInfo.index}
+		const to = {droppableId: props.droppableId, index: info.index}
+
 		const from = {droppableId: fromColumnId, index: parseInt(fromIndex)}
+
+		setDraggingOver(false)
 		props.onDrop({dragId: payloadId, to, from})
 		dragContext.clearPlaceholders()
-		setDraggingOver(false)
 	}
 
 	const onDragOver = (e: React.DragEvent<HTMLDivElement>) => {
@@ -57,12 +63,14 @@ function Droppable(props: Props) {
 		dragContext.clearPlaceholders()
 	}
 
+	// use custom dragster hook for better enter and exit event handling
 	const {elementRef} = useDragster({
-		accepts: props.accepts,
-		dragsterDrop: prepareDrop,
-		dragsterOver: onDragOver,
 		dragsterLeave: onDragLeave,
+		dragsterOver: onDragOver,
+		dragsterDrop: prepareDrop,
+		accepts: props.accepts,
 	})
+
 	return props.children(
 		{
 			droppableProps: {ref: elementRef},

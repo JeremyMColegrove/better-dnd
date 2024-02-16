@@ -29,11 +29,7 @@ export const DragDropContext: React.FC<{
 	placeholder?: (draggable: HTMLElement, type: string) => React.ReactElement
 }> = ({children, placeholder: __placeholder}) => {
 	const [calculatedPlaceholder, setCalculatedPlaceholder] = useState<React.ReactElement>(<></>)
-	const [placeholderInfo, setPlaceholderInfo] = useState<PlaceholderInfo>({index: 5, visibleId: ''})
-
-	useEffect(() => {
-		console.log(placeholderInfo)
-	}, [placeholderInfo])
+	const [placeholderInfo, setPlaceholderInfo] = useState<PlaceholderInfo>({index: -1, visibleId: ''})
 
 	const value: DragDropData = {
 		placeholder: calculatedPlaceholder,
@@ -42,7 +38,7 @@ export const DragDropContext: React.FC<{
 		placeholderInfo: placeholderInfo,
 		updateActivePlaceholder: (e: React.DragEvent<HTMLDivElement>, columnId: string) =>
 			setPlaceholderInfo(() => DOMUtils.getVisiblePlaceholderInfo(e, columnId)),
-		clearPlaceholders: () => setPlaceholderInfo({...placeholderInfo, visibleId: ''}),
+		clearPlaceholders: () => setPlaceholderInfo((prevInfo) => ({...prevInfo, visibleId: ''})),
 	}
 
 	return <DragContext.Provider value={value}>{children}</DragContext.Provider>

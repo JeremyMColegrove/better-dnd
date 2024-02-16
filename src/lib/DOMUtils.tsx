@@ -12,7 +12,7 @@ export default class DOMUtils {
 	static getVisiblePlaceholderInfo = (e: React.DragEvent<HTMLDivElement>, columnId: string): PlaceholderInfo => {
 		// here we get all of our tasks in the specific column, and figure out which tasks placeholder we should display (top or bottom)
 		// get all draggables in column
-		const draggables = Array.from(document.querySelectorAll(`[data-columnid="${columnId}"]`))
+		const draggables = Array.from(document.querySelectorAll(`[data-columnid="${columnId}"]:not([style*="display: none"])`))
 
 		// now we figure it out! Woohoo
 		const closest = draggables.reduce(
@@ -29,13 +29,15 @@ export default class DOMUtils {
 			{
 				offset: Number.NEGATIVE_INFINITY,
 				element: draggables[draggables.length - 1],
-				index: draggables.length - 1,
+				index: draggables.length,
 			},
 		)
 
+		console.log(closest)
+
 		// check if should return columnId (very bottom or empty droppable placeholder)
-		if (!closest.element || (closest.index === draggables.length - 1 && closest.offset === Number.NEGATIVE_INFINITY)) {
-			return {visibleId: columnId, index: 0}
+		if (!closest.element || (closest.index === draggables.length && closest.offset === Number.NEGATIVE_INFINITY)) {
+			return {visibleId: columnId, index: closest.index}
 		}
 
 		// check if the id should be that of the droppable

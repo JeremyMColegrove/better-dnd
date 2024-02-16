@@ -38,15 +38,12 @@ class CardClass {
 	}
 }
 
-const shownTask = new CardClass('Placeholder')
-shownTask.id = 'test-id'
 const defaultTasks = [
 	new CardClass('Peace'),
 	new CardClass('Bring It'),
 	new CardClass('Hotdogs'),
 	new CardClass('Sandwich'),
 	new CardClass('Stop'),
-	shownTask,
 	new CardClass('Pours'),
 	new CardClass('Oranges'),
 	new CardClass('Start Running'),
@@ -67,6 +64,9 @@ export default function Board() {
 		payload.column = info.to.droppableId
 
 		// update the rank here to whatever
+		// const above = cards.filter((card) => card.column === info.to.droppableId)[info.to.index - 1]
+		// const below = cards.filter((card) => card.column === info.to.droppableId)[info.to.index]
+		// console.log(above, below)
 
 		cardsCopy.push(payload)
 		setCards(cardsCopy.sort((a, b) => a.rank.compareTo(b.rank)))
@@ -83,39 +83,33 @@ export default function Board() {
 	return (
 		<div className="h-screen w-screen flex gap-3 p-12">
 			<DragDropContext placeholder={getPlaceholder}>
-				<Droppable accepts="column" droppableId="column" onDrop={() => console.log('Hey')}>
-					{(provided, snapshot) => (
-						<div className="flex p-4 h-fit gap-4 bg-gray-700">
-							{columns.map((column) => (
-								<Droppable key={column.id} droppableId={column.id} accepts="task" onDrop={onDrop}>
-									{(provided, snapshot) => (
-										<div
-											{...provided.droppableProps}
-											className="w-56 shrink-0 h-fit overflow-y-scroll p-3 bg-violet-400 rounded flex gap-1 flex-col items-center">
-											{cards
-												.filter((task) => task.column === column.id)
-												.map((task) => (
-													<Draggable key={task.id} draggableProps={provided.draggableProps} type="task" dragId={task.id}>
-														{(provided, snapshot) => (
-															<div
-																{...provided.draggableProps}
-																className={`w-full  h-8 gap-4 shrink-0 flex items-center p-2 bg-white rounded text-gray-800 text-xs`}>
-																<div className="draghandle">
-																	<FiMenu />
-																</div>
-																{task.title}
-															</div>
-														)}
-													</Draggable>
-												))}
-											{provided.placeholder}
-										</div>
-									)}
-								</Droppable>
-							))}
-						</div>
-					)}
-				</Droppable>
+				{columns.map((column) => (
+					<Droppable key={column.id} droppableId={column.id} accepts="task" onDrop={onDrop}>
+						{(provided, snapshot) => (
+							<div
+								{...provided.droppableProps}
+								className="w-56 shrink-0 h-fit overflow-y-scroll p-3 bg-violet-400 rounded flex gap-1 flex-col items-center">
+								{cards
+									.filter((task) => task.column === column.id)
+									.map((task) => (
+										<Draggable key={task.id} draggableProps={provided.draggableProps} type="task" dragId={task.id}>
+											{(provided, snapshot) => (
+												<div
+													{...provided.draggableProps}
+													className={`w-full  h-8 gap-4 shrink-0 flex items-center p-2 bg-white rounded text-gray-800 text-xs`}>
+													<div className="draghandle">
+														<FiMenu />
+													</div>
+													{task.title}
+												</div>
+											)}
+										</Draggable>
+									))}
+								{provided.placeholder}
+							</div>
+						)}
+					</Droppable>
+				))}
 
 				<Droppable key={'burn'} droppableId="burn" accepts="task" onDrop={() => console.log('You are deleting me')}>
 					{(provided, snapshot) => (
