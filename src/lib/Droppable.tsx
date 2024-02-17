@@ -1,8 +1,9 @@
-import React, {useEffect, useRef, useState} from 'react'
+import React, {useState} from 'react'
 import {useDragContext} from './DragDropContext'
-import DOMUtils from './DOMUtils'
-import useDragster from './Dragster.hook'
-import useRandomID from './randomId.hook'
+import DOMUtils from './helpers/DOMUtils'
+import useDragster from './helpers/Dragster.hook'
+import useRandomID from './helpers/randomId.hook'
+import {DroppableContext} from './DroppableContext'
 
 export interface DropProps {
 	dragId: string
@@ -16,18 +17,17 @@ export interface DropProps {
 	}
 }
 
-export interface DraggableProps {
-	columnId: string
-}
+export type DroppableDirection = 'horizontal' | 'vertical'
 
 interface Props {
 	children: (
-		provided: {draggableProps: DraggableProps; placeholder: React.ReactElement; droppableProps: any; [x: string]: any},
+		provided: {placeholder: React.ReactElement; droppableProps: any; [x: string]: any},
 		snapshot: {isDraggingOver: boolean},
 	) => React.ReactElement
 	onDrop: (info: DropProps) => any
 	droppableId: string
 	accepts: string
+	direction: DroppableDirection
 }
 
 function Droppable(props: Props) {
@@ -41,7 +41,7 @@ function Droppable(props: Props) {
 		const fromIndex = e.dataTransfer.getData('application/draggable-from-index')
 
 		// recalculate div info
-		const info = DOMUtils.getVisiblePlaceholderInfo(e, myId)
+		const info = DOMUtils.getVisiblePlaceholderInfo(e, myId, props.direction)
 
 		const to = {droppableId: props.droppableId, index: info.index}
 
@@ -54,13 +54,18 @@ function Droppable(props: Props) {
 
 	const onDragOver = (e: React.DragEvent<HTMLDivElement>) => {
 		// refresh the dragContext placeholderInfo so the correct draggable shows its placeholder
-		dragContext.updateActivePlaceholder(e, myId)
+		dragContext.updateActivePlaceholder(e, myId, props.direction)
 		if (!draggingOver) setDraggingOver(true)
 	}
 
+	//@ts-ignore
 	const onDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
 		setDraggingOver(false)
-		dragContext.clearPlaceholders()
+
+		// check if it is a draggable from your column, if so, clear placeholders (otherwise was a draggable from another droppable)
+		// if (acceptsType(e, props.accepts)) {
+		// 	dragContext.clearPlaceholders()
+		// }
 	}
 
 	// use custom dragster hook for better enter and exit event handling
@@ -71,13 +76,17 @@ function Droppable(props: Props) {
 		accepts: props.accepts,
 	})
 
-	return props.children(
-		{
-			droppableProps: {ref: elementRef},
-			draggableProps: {columnId: myId},
-			placeholder: dragContext.placeholderInfo.visibleId === myId ? dragContext.placeholder : <></>,
-		},
-		{isDraggingOver: draggingOver},
+	return (
+		<DroppableContext droppableId={myId} droppableName={props.droppableId}>
+			{props.children(
+				{
+					droppableProps: {ref: elementRef},
+					draggableProps: {columnId: myId, columnName: props.droppableId},
+					placeholder: dragContext.placeholderInfo.visibleId === myId ? dragContext.placeholder : <></>,
+				},
+				{isDraggingOver: draggingOver},
+			)}
+		</DroppableContext>
 	)
 }
 

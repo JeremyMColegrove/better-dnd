@@ -1,5 +1,6 @@
 import React, {createContext, useContext, useState} from 'react'
-import DOMUtils from './DOMUtils'
+import DOMUtils from './helpers/DOMUtils'
+import {DroppableDirection} from './Droppable'
 
 export interface PlaceholderInfo {
 	visibleId: string
@@ -11,7 +12,7 @@ interface DragDropData {
 	recalculatePlaceholder: (draggable: HTMLElement, type: string) => void
 	placeholderInfo: PlaceholderInfo
 	setPlaceholderInfo: (info: PlaceholderInfo) => void
-	updateActivePlaceholder: (e: React.DragEvent<HTMLDivElement>, columnId: string) => void
+	updateActivePlaceholder: (e: React.DragEvent<HTMLDivElement>, columnId: string, direction: DroppableDirection) => void
 	clearPlaceholders: () => void
 }
 
@@ -37,9 +38,9 @@ export const DragDropContext: React.FC<{
 		recalculatePlaceholder: (draggable: HTMLElement, type: string) =>
 			setCalculatedPlaceholder(__placeholder ? __placeholder(draggable, type) : <></>),
 		placeholderInfo: placeholderInfo,
-		setPlaceholderInfo: (info: PlaceholderInfo) => setPlaceholderInfo((old) => info),
-		updateActivePlaceholder: (e: React.DragEvent<HTMLDivElement>, columnId: string) =>
-			setPlaceholderInfo(() => DOMUtils.getVisiblePlaceholderInfo(e, columnId)),
+		setPlaceholderInfo: (info: PlaceholderInfo) => setPlaceholderInfo(() => info),
+		updateActivePlaceholder: (e: React.DragEvent<HTMLDivElement>, columnId: string, direction: DroppableDirection) =>
+			setPlaceholderInfo(() => DOMUtils.getVisiblePlaceholderInfo(e, columnId, direction)),
 		clearPlaceholders: () => setPlaceholderInfo((prevInfo) => ({...prevInfo, visibleId: ''})),
 	}
 

@@ -8,21 +8,22 @@ interface DragsterOptions {
 	accepts: string
 }
 
+export const acceptsType = (event: React.DragEvent<HTMLDivElement>, accepts: string): boolean => {
+	if (!accepts) return false
+	const acceptables = accepts.split(' ')
+
+	for (const acceptable of acceptables) {
+		if (event.dataTransfer.types.includes(`application/draggable-for-${acceptable}`)) {
+			return true
+		}
+	}
+	return false
+}
+
 const useDragster = ({dragsterEnter, dragsterDrop, dragsterLeave, dragsterOver, accepts}: DragsterOptions) => {
 	const elementRef = useRef<any>(null)
 	let first = false
 	let second = false
-
-	const acceptsType = (event: React.DragEvent<HTMLDivElement>): boolean => {
-		if (!accepts) return false
-		const acceptables = accepts.split(' ')
-		for (const acceptable of acceptables) {
-			if (event.dataTransfer.types.includes(`application/draggable-for-${acceptable}`)) {
-				return true
-			}
-		}
-		return false
-	}
 
 	const dragenter = (event: React.DragEvent<HTMLDivElement>) => {
 		event.stopPropagation()
@@ -32,16 +33,6 @@ const useDragster = ({dragsterEnter, dragsterDrop, dragsterLeave, dragsterOver, 
 			second = true
 		} else {
 			first = true
-
-			const enterEvent = new CustomEvent('dragsterEnter', {
-				bubbles: true,
-				cancelable: false,
-				detail: {
-					dataTransfer: event.dataTransfer,
-					sourceEvent: event,
-				},
-			})
-			elementRef.current?.dispatchEvent(enterEvent)
 			dragsterEnter && dragsterEnter(event)
 		}
 	}
@@ -57,15 +48,6 @@ const useDragster = ({dragsterEnter, dragsterDrop, dragsterLeave, dragsterOver, 
 		}
 
 		if (!first && !second) {
-			const leaveEvent = new CustomEvent('dragsterLeave', {
-				bubbles: true,
-				cancelable: false,
-				detail: {
-					dataTransfer: event.dataTransfer,
-					sourceEvent: event,
-				},
-			})
-			elementRef.current?.dispatchEvent(leaveEvent)
 			dragsterLeave && dragsterLeave(event)
 		}
 	}
@@ -80,12 +62,11 @@ const useDragster = ({dragsterEnter, dragsterDrop, dragsterLeave, dragsterOver, 
 	}
 
 	const dragOver = (event: React.DragEvent<HTMLDivElement>) => {
-		if (acceptsType(event)) {
+		if (acceptsType(event, accepts)) {
 			event.preventDefault()
 			event.stopPropagation()
+			dragsterOver && dragsterOver(event)
 		}
-
-		dragsterOver && dragsterOver(event)
 	}
 
 	useEffect(() => {
