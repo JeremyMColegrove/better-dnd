@@ -1,9 +1,9 @@
-import React, {createContext, useContext, useState} from 'react'
+import React, {createContext, useContext, useRef, useState} from 'react'
 import DOMUtils from './helpers/DOMUtils'
 import {DroppableDirection} from './Droppable'
 
 export interface PlaceholderInfo {
-	visibleId: string
+	id: string
 	index: number
 }
 
@@ -12,8 +12,11 @@ interface DragDropData {
 	recalculatePlaceholder: (draggable: HTMLElement, type: string) => void
 	placeholderInfo: PlaceholderInfo
 	setPlaceholderInfo: (info: PlaceholderInfo) => void
-	updateActivePlaceholder: (e: React.DragEvent<HTMLDivElement>, columnId: string, direction: DroppableDirection) => void
+	updateActivePlaceholder: (e: React.DragEvent<HTMLDivElement>, columnId: string, direction?: DroppableDirection) => void
 	clearPlaceholders: () => void
+	isDroppable: boolean
+	setIsDroppable: React.Dispatch<React.SetStateAction<boolean>>
+	droppableLastUpdated: React.MutableRefObject<number>
 }
 
 const DragContext = createContext<DragDropData | undefined>(undefined)
@@ -23,6 +26,7 @@ export const useDragContext = () => {
 	if (!context) {
 		throw new Error('useDragContext must be used within a DragDropContext')
 	}
+
 	return context
 }
 
@@ -31,7 +35,9 @@ export const DragDropContext: React.FC<{
 	placeholder?: (draggable: HTMLElement, type: string) => React.ReactElement
 }> = ({children, placeholder: __placeholder}) => {
 	const [calculatedPlaceholder, setCalculatedPlaceholder] = useState<React.ReactElement>(<></>)
-	const [placeholderInfo, setPlaceholderInfo] = useState<PlaceholderInfo>({index: -1, visibleId: ''})
+	const [placeholderInfo, setPlaceholderInfo] = useState<PlaceholderInfo>({index: -1, id: ''})
+	const [isDroppable, setIsDroppable] = useState<boolean>(false)
+	const droppableLastUpdated = useRef<number>(0)
 
 	const value: DragDropData = {
 		placeholder: calculatedPlaceholder,
@@ -39,9 +45,15 @@ export const DragDropContext: React.FC<{
 			setCalculatedPlaceholder(__placeholder ? __placeholder(draggable, type) : <></>),
 		placeholderInfo: placeholderInfo,
 		setPlaceholderInfo: (info: PlaceholderInfo) => setPlaceholderInfo(() => info),
-		updateActivePlaceholder: (e: React.DragEvent<HTMLDivElement>, columnId: string, direction: DroppableDirection) =>
-			setPlaceholderInfo(() => DOMUtils.getVisiblePlaceholderInfo(e, columnId, direction)),
-		clearPlaceholders: () => setPlaceholderInfo((prevInfo) => ({...prevInfo, visibleId: ''})),
+		updateActivePlaceholder: (e: React.DragEvent<HTMLDivElement>, columnId: string, direction?: DroppableDirection) => {
+			const info = DOMUtils.getVisiblePlaceholderInfo(e, columnId, direction)
+			if (info.index === placeholderInfo.index && info.id === placeholderInfo.id) return
+			setPlaceholderInfo(() => info)
+		},
+		clearPlaceholders: () => setPlaceholderInfo((prevInfo) => ({...prevInfo, id: ''})),
+		isDroppable: isDroppable,
+		setIsDroppable: setIsDroppable,
+		droppableLastUpdated: droppableLastUpdated,
 	}
 
 	return <DragContext.Provider value={value}>{children}</DragContext.Provider>

@@ -1,10 +1,10 @@
 {
-	"name": "better-dnd",
+	"name": "react-better-dnd",
 	"private": true,
 	"version": "1.0.0",
 	"description": "",
 	"repository": {
-		"url": "https://github.com/JeremyMColegrove/better-dnd"
+		"url": "https://github.com/JeremyMColegrove/react-better-dnd"
 	},
 	"exports": {
 		".": {
@@ -38,5 +38,8 @@
 		"tslib": "^2.6.2",
 		"typescript": "^5.2.2",
 		"vite": "^5.1.0"
+	},
+	"dependencies": {
+		"react-dragster": "^1.0.7"
 	}
 }

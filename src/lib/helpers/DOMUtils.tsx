@@ -1,11 +1,16 @@
 import {PlaceholderInfo} from '../DragDropContext'
 import {DroppableDirection} from '../Droppable'
+import {CSS_CLASS_PLACEHOLDER_HIDDEN, DATA_DRAGGABLE_COLUMN_ID} from './Constants'
 
 export default class DOMUtils {
 	constructor() {}
 
 	static getAllItems = (columnId: string): Element[] => {
-		return Array.from(document.querySelectorAll(`[data-columnid="${columnId}"]:not([style*="display: none"])`))
+		return Array.from(
+			document.querySelectorAll(
+				`[${DATA_DRAGGABLE_COLUMN_ID}="${columnId}"]:not([style*="display: none"]):not(${CSS_CLASS_PLACEHOLDER_HIDDEN})`,
+			),
+		)
 	}
 
 	static getIndexOfItem = (columnId: string, itemId: string) => {
@@ -18,7 +23,7 @@ export default class DOMUtils {
 		return this.getAllItems(columnId)[index]
 	}
 
-	static getVisiblePlaceholderInfo = (e: React.DragEvent<HTMLDivElement>, columnId: string, direction: DroppableDirection): PlaceholderInfo => {
+	static getVisiblePlaceholderInfo = (e: React.DragEvent<any>, columnId: string, direction?: DroppableDirection): PlaceholderInfo => {
 		// here we get all of our tasks in the specific column, and figure out which tasks placeholder we should display (top or bottom)
 		// get all draggables in column
 		const draggables = this.getAllItems(columnId)
@@ -28,6 +33,7 @@ export default class DOMUtils {
 			(closest, child, index) => {
 				const box = child.getBoundingClientRect()
 				var distance = -1
+				// default to vertical checking
 				if (direction == 'horizontal') {
 					distance = e.clientX - (box.right + box.left) / 2
 				} else {
@@ -36,9 +42,8 @@ export default class DOMUtils {
 
 				if (distance < 0 && distance > closest.offset) {
 					return {offset: distance, element: child, index: index}
-				} else {
-					return closest
 				}
+				return closest
 			},
 			{
 				offset: Number.NEGATIVE_INFINITY,
@@ -49,10 +54,10 @@ export default class DOMUtils {
 
 		// check if should return columnId (very bottom or empty droppable placeholder)
 		if (!closest.element || (closest.index === draggables.length && closest.offset === Number.NEGATIVE_INFINITY)) {
-			return {visibleId: columnId, index: closest.index}
+			return {id: columnId, index: closest.index}
 		}
 
 		// check if the id should be that of the droppable
-		return {visibleId: closest.element.id, index: closest.index}
+		return {id: closest.element.id, index: closest.index}
 	}
 }

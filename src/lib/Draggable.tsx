@@ -3,15 +3,34 @@ import {useDragContext} from './DragDropContext'
 import DOMUtils from './helpers/DOMUtils'
 import useRandomID from './helpers/randomId.hook'
 import {useDroppableContext} from './DroppableContext'
+import {
+	DATA_DRAGGABLE_COLUMN_ID,
+	DRAG_DATA_DRAGGABLE_ID,
+	DRAG_DATA_DRAGGABLE_TYPE,
+	DRAG_DATA_FROM_COLUMN_ID,
+	DRAG_DATA_FROM_INDEX,
+} from './helpers/Constants'
 
-interface DraggableProps {}
+type DragEventFunction = (e: React.DragEvent<any>) => any
+// type GenericFunction = (...args: any[]) => any
+
+interface DraggableProps {
+	draggable: boolean
+	onDragStart: DragEventFunction | any
+	onDrag: DragEventFunction | any
+	onDragEnd: DragEventFunction | any
+	ref: React.MutableRefObject<any>
+	key: number
+	[DATA_DRAGGABLE_COLUMN_ID]: string
+	id: string
+	tabIndex: number
+}
 
 interface DragHandleProps {}
 
 interface SnapshotProps {
-	dragging: boolean
-	currentDroppableID: string
-	currentDroppableName: string
+	isDragging: boolean
+	isDroppable: boolean
 }
 
 interface Props {
@@ -38,27 +57,22 @@ function Draggable(props: Props) {
 		}
 
 		e.stopPropagation()
-
 		if (dragging) return
-
 		// re-calculate placeholder
 		childRef.current && dragContext.recalculatePlaceholder(childRef.current, props.type)
-
 		// pre-set the placeholder to the element below this one
-
-		// id of the draggable
-		e.dataTransfer.setData('application/draggable-id', props.dragId)
-
+		// id of the draggable being dragged
+		e.dataTransfer.setData(DRAG_DATA_DRAGGABLE_ID, props.dragId)
 		// set previous droppable id
-		e.dataTransfer.setData('application/draggable-from-columnid', droppableContext.droppableName)
-
-		const indexOfItem = DOMUtils.getIndexOfItem(droppableContext.droppableId, myId)
-
-		// set previous droppable index
-		e.dataTransfer.setData('application/draggable-from-index', indexOfItem.toString())
+		if (droppableContext) {
+			e.dataTransfer.setData(DRAG_DATA_FROM_COLUMN_ID, droppableContext.droppableName)
+			const indexOfItem = DOMUtils.getIndexOfItem(droppableContext.droppableId, myId)
+			// set previous droppable index
+			e.dataTransfer.setData(DRAG_DATA_FROM_INDEX, indexOfItem.toString())
+		}
 
 		if (props.type) {
-			e.dataTransfer.setData(`application/draggable-for-${props.type}`, 'true')
+			e.dataTransfer.setData(DRAG_DATA_DRAGGABLE_TYPE(props.type), 'true')
 		}
 	}
 
@@ -67,6 +81,8 @@ function Draggable(props: Props) {
 		if (!dragging) {
 			setDragging(true)
 		}
+
+		// check if can drop
 		e.stopPropagation()
 	}
 
@@ -80,15 +96,22 @@ function Draggable(props: Props) {
 		canDrag.current = false
 		e.stopPropagation()
 		dragContext.clearPlaceholders()
+		dragContext.setIsDroppable(false)
 	}
 
 	useEffect(() => {
 		setLocalPlaceholder(false)
-	}, [dragContext.placeholderInfo.visibleId])
+	}, [dragContext.placeholderInfo.id])
+
+	useEffect(() => {
+		if (dragging && !dragContext.isDroppable) {
+			dragContext.clearPlaceholders()
+		}
+	}, [dragContext.isDroppable])
 
 	return (
 		<>
-			{(dragContext.placeholderInfo.visibleId === myId || localPlaceholder) && dragContext.placeholder}
+			{(dragContext.placeholderInfo.id === myId || localPlaceholder) && dragContext.placeholder}
 			{props.children(
 				{
 					draggableProps: {
@@ -98,15 +121,16 @@ function Draggable(props: Props) {
 						onDragEnd: onDrop,
 						ref: childRef,
 						key: refresh,
-						['data-columnid']: droppableContext.droppableId,
+						[DATA_DRAGGABLE_COLUMN_ID]: droppableContext.droppableId,
 						id: myId,
+						tabIndex: 0,
 					},
 					dragHandle: {
 						onMouseDown: () => (canDrag.current = true),
 						onMouseUp: () => (canDrag.current = false),
 					},
 				},
-				{dragging: dragging, currentDroppableID: droppableContext.droppableId, currentDroppableName: droppableContext.droppableName},
+				{isDragging: dragging, isDroppable: dragging && dragContext.isDroppable},
 			)}
 		</>
 	)
