@@ -40,6 +40,6 @@
 		"vite": "^5.1.0"
 	},
 	"dependencies": {
-		"react-dragster": "^1.0.7"
+		"react-dragster": "^1.1.4"
 	}
 }

@@ -17,6 +17,11 @@ interface DragDropData {
 	isDroppable: boolean
 	setIsDroppable: React.Dispatch<React.SetStateAction<boolean>>
 	droppableLastUpdated: React.MutableRefObject<number>
+	isDraggingDraggable: React.MutableRefObject<boolean>
+	pointerPosition: React.MutableRefObject<{
+		x: number
+		y: number
+	}>
 }
 
 const DragContext = createContext<DragDropData | undefined>(undefined)
@@ -38,6 +43,8 @@ export const DragDropContext: React.FC<{
 	const [placeholderInfo, setPlaceholderInfo] = useState<PlaceholderInfo>({index: -1, id: ''})
 	const [isDroppable, setIsDroppable] = useState<boolean>(false)
 	const droppableLastUpdated = useRef<number>(0)
+	const isDraggingDraggable = useRef<boolean>(false)
+	const pointerPosition = useRef<{x: number; y: number}>({x: -1, y: -1})
 
 	const value: DragDropData = {
 		placeholder: calculatedPlaceholder,
@@ -54,6 +61,8 @@ export const DragDropContext: React.FC<{
 		isDroppable: isDroppable,
 		setIsDroppable: setIsDroppable,
 		droppableLastUpdated: droppableLastUpdated,
+		isDraggingDraggable: isDraggingDraggable,
+		pointerPosition: pointerPosition,
 	}
 
 	return <DragContext.Provider value={value}>{children}</DragContext.Provider>

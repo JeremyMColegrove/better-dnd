@@ -1,7 +1,7 @@
-import React, {useRef, useState} from 'react'
+import React, {useEffect, useRef, useState} from 'react'
 import {useDragContext} from './DragDropContext'
 import DOMUtils from './helpers/DOMUtils'
-import useDragster from 'react-dragster'
+import useDragster, {DragsterOptions} from 'react-dragster'
 import useRandomID from './helpers/randomId.hook'
 import {DroppableContext} from './DroppableContext'
 import {
@@ -10,6 +10,8 @@ import {
 	DRAG_DATA_FROM_COLUMN_ID,
 	DRAG_DATA_FROM_INDEX,
 	DRAG_DATA_TO_INDEX,
+	SCROLL_CHANGE_EVENT,
+	SCROLL_HOVER_EVENT,
 } from './helpers/Constants'
 
 export interface DropProps {
@@ -52,9 +54,15 @@ export const acceptsType = (event: React.DragEvent<HTMLDivElement>, accepts: str
 // set default values here
 function Droppable(props: Props) {
 	const dragContext = useDragContext()
+	// if draggingOver this element (doesn't work for multiple layered droppables)
 	const [draggingOver, setDraggingOver] = useState<boolean>(false)
 	const myId = useRandomID()
 	const currentDraggingOverTimeout = useRef<NodeJS.Timeout | undefined>()
+	// updated position of pointer
+	const animateScrollStarted = useRef<boolean>(false)
+
+	// TESTING to test pointer in bounding box method
+	const hoveringOver = useRef<boolean>(false)
 
 	const prepareDrop = (e: React.DragEvent<HTMLDivElement>) => {
 		const payloadId = e.dataTransfer.getData(DRAG_DATA_DRAGGABLE_ID)
@@ -69,12 +77,14 @@ function Droppable(props: Props) {
 
 		const to = {droppableId: props.droppableId, index: toIndex}
 		const from = {droppableId: fromColumnId, index: fromIndex}
-		setDraggingOver(false)
+		if (draggingOver) {
+			setDraggingOver(false)
+		}
 		props.onDrop({dragId: payloadId, to, from})
 		dragContext.clearPlaceholders()
 	}
 
-	const onDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+	const onDragOver = (e: React.DragEvent<any>) => {
 		// if this droppable can not accept the draggable, exit
 		if (!acceptsType(e, props.accepts)) return
 		// we can accept this drop
@@ -85,40 +95,19 @@ function Droppable(props: Props) {
 		// refresh the dragContext placeholderInfo so the correct draggable shows its placeholder
 		dragContext.updateActivePlaceholder(e, myId, props.direction)
 		// if we are not currently draggingOver, set to true
-		if (!draggingOver) setDraggingOver(true)
+		if (!draggingOver) {
+			setDraggingOver(true)
+		}
 		// make sure dragContext is updated
 		if (!dragContext.isDroppable) {
 			dragContext.setIsDroppable(true)
-		}
-
-		requestAnimationFrame(() => animateScroll(e))
-	}
-
-	const animateScroll = (e: React.DragEvent<HTMLDivElement>) => {
-		if (!watcherRef.current) return
-
-		// Calculate the distance from the item to the edges
-		const distanceFromTop = e.clientY - watcherRef.current.getBoundingClientRect().top
-		const distanceFromBottom = watcherRef.current.clientHeight - distanceFromTop
-
-		console.log(distanceFromBottom)
-		// Adjust scroll speed based on the distance
-		const scrollSpeed = Math.min(2, Math.abs(distanceFromTop - distanceFromBottom) / 500)
-
-		// Scroll up if close to the top edge
-		if (distanceFromTop < 50) {
-			watcherRef.current.scrollTop -= scrollSpeed
-		}
-
-		// Scroll down if close to the bottom edge
-		if (distanceFromBottom < 50) {
-			watcherRef.current.scrollTop += scrollSpeed
 		}
 	}
 
 	const onDragLeave = (e: React.DragEvent<any>) => {
 		// local dragging should be false
 		setDraggingOver(false)
+		// reset the drag scroll listeners
 		const startTimeout = (time: number) => {
 			// cancel existing timer if exists
 			if (currentDraggingOverTimeout.current) {
@@ -143,11 +132,73 @@ function Droppable(props: Props) {
 		if (acceptsType(e, props.accepts)) {
 			startTimeout(dragContext.droppableLastUpdated.current)
 		}
+
+		// check if pointer is outside of boundaries, it is no longer over this element
+		if (!watcherRef.current) return
+		const rect = watcherRef.current.getBoundingClientRect()
+		// there are false events here, we have to manually check if it is outside of the div
+		console.log(dragContext.pointerPosition.current.x, rect.left + watcherRef.current.clientWidth)
+		if (e.clientX <= rect.left || e.clientX >= rect.left + watcherRef.current.clientWidth) {
+			// outside of x position, turn off hovering
+			hoveringOver.current = false
+		}
 	}
+
+	const animateScroll = () => {
+		if (!watcherRef.current || !dragContext.isDraggingDraggable.current || !hoveringOver.current) {
+			animateScrollStarted.current = false // exiting loop, turn off this
+			return
+		}
+		animateScrollStarted.current = true
+
+		// Calculate the distance from the item to the edges
+		const distanceFromTop = dragContext.pointerPosition.current.y - watcherRef.current.getBoundingClientRect().top
+		const distanceFromBottom = watcherRef.current.clientHeight - distanceFromTop
+		const distanceFromLeft = dragContext.pointerPosition.current.x - watcherRef.current.getBoundingClientRect().left
+		const distanceFromRight = watcherRef.current.clientWidth - distanceFromLeft
+
+		// Adjust scroll speed based on the distance
+		var scrollSpeedY = 3
+		var scrollSpeedX = 3
+
+		// check if should scroll Y
+		if (distanceFromTop < 50) {
+			watcherRef.current.scrollTop -= scrollSpeedY
+		}
+		// Scroll down if close to the bottom edge
+		else if (distanceFromBottom < 50) {
+			watcherRef.current.scrollTop += scrollSpeedY
+		}
+
+		// check if should scroll X
+		if (distanceFromLeft < 50) {
+			watcherRef.current.scrollLeft -= scrollSpeedX
+		}
+		// Scroll down if close to the bottom edge
+		else if (distanceFromRight < 50) {
+			watcherRef.current.scrollLeft += scrollSpeedX
+		}
+
+		requestAnimationFrame(animateScroll)
+	}
+
+	const onDragEnter = () => {
+		hoveringOver.current = true
+		if (!animateScrollStarted.current) {
+			requestAnimationFrame(animateScroll)
+		}
+	}
+
+	useEffect(() => {
+		if (!animateScrollStarted.current) {
+			requestAnimationFrame(animateScroll)
+		}
+	}, [dragContext.isDraggingDraggable.current])
 
 	// use custom dragster hook for better enter and exit event handling
 	const watcherRef = useDragster({
 		dragsterLeave: onDragLeave,
+		dragsterEnter: onDragEnter,
 		dragsterDrop: prepareDrop,
 	})
 
@@ -158,6 +209,8 @@ function Droppable(props: Props) {
 					droppableProps: {
 						ref: watcherRef,
 						onDragOver: onDragOver,
+						onPointerEnter: () => (hoveringOver.current = true),
+						onPointerLeave: () => (hoveringOver.current = false),
 						id: myId,
 						['aria-orientation']: props.direction,
 						['role']: 'tree',

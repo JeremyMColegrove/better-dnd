@@ -68,6 +68,7 @@ function Draggable(props: Props) {
 		if (dragging) return
 		// re-calculate placeholder
 		childRef.current && dragContext.recalculatePlaceholder(childRef.current, props.type)
+		dragContext.isDraggingDraggable.current = true
 		// pre-set the placeholder to the element below this one
 		// id of the draggable being dragged
 		e.dataTransfer.setData(DRAG_DATA_DRAGGABLE_ID, props.dragId)
@@ -85,16 +86,18 @@ function Draggable(props: Props) {
 	}
 
 	// we should not use onDragStart here, because styles get updated in column on drag over, so there is glitch that happens for second
-	const onDrag = (e: React.DragEvent<HTMLDivElement>) => {
+	const onDrag = (e: React.DragEvent<any>) => {
 		if (!dragging) {
 			setDragging(true)
 		}
+		// update mouse cursor when dragging, otherwise we don't care
+		dragContext.pointerPosition.current = {x: e.clientX, y: e.clientY}
 
 		// check if can drop
 		e.stopPropagation()
 	}
 
-	const onDrop = (e: React.DragEvent<HTMLDivElement>) => {
+	const onDrop = (e: React.DragEvent<any>) => {
 		startTransition(() => {
 			setDragging(false)
 			setLocalPlaceholder(false)
@@ -104,6 +107,7 @@ function Draggable(props: Props) {
 		canDrag.current = false
 		e.stopPropagation()
 		dragContext.clearPlaceholders()
+		dragContext.isDraggingDraggable.current = false
 		dragContext.setIsDroppable(false)
 	}
 
