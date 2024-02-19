@@ -90,6 +90,30 @@ function Droppable(props: Props) {
 		if (!dragContext.isDroppable) {
 			dragContext.setIsDroppable(true)
 		}
+
+		requestAnimationFrame(() => animateScroll(e))
+	}
+
+	const animateScroll = (e: React.DragEvent<HTMLDivElement>) => {
+		if (!watcherRef.current) return
+
+		// Calculate the distance from the item to the edges
+		const distanceFromTop = e.clientY - watcherRef.current.getBoundingClientRect().top
+		const distanceFromBottom = watcherRef.current.clientHeight - distanceFromTop
+
+		console.log(distanceFromBottom)
+		// Adjust scroll speed based on the distance
+		const scrollSpeed = Math.min(2, Math.abs(distanceFromTop - distanceFromBottom) / 500)
+
+		// Scroll up if close to the top edge
+		if (distanceFromTop < 50) {
+			watcherRef.current.scrollTop -= scrollSpeed
+		}
+
+		// Scroll down if close to the bottom edge
+		if (distanceFromBottom < 50) {
+			watcherRef.current.scrollTop += scrollSpeed
+		}
 	}
 
 	const onDragLeave = (e: React.DragEvent<any>) => {
