@@ -4,7 +4,13 @@ import DOMUtils from './helpers/DOMUtils'
 import useDragster from 'react-dragster'
 import useRandomID from './helpers/randomId.hook'
 import {DroppableContext} from './DroppableContext'
-import {DRAG_DATA_DRAGGABLE_ID, DRAG_DATA_DRAGGABLE_TYPE, DRAG_DATA_FROM_COLUMN_ID, DRAG_DATA_FROM_INDEX} from './helpers/Constants'
+import {
+	DRAG_DATA_DRAGGABLE_ID,
+	DRAG_DATA_DRAGGABLE_TYPE,
+	DRAG_DATA_FROM_COLUMN_ID,
+	DRAG_DATA_FROM_INDEX,
+	DRAG_DATA_TO_INDEX,
+} from './helpers/Constants'
 
 export interface DropProps {
 	dragId: string
@@ -53,11 +59,16 @@ function Droppable(props: Props) {
 	const prepareDrop = (e: React.DragEvent<HTMLDivElement>) => {
 		const payloadId = e.dataTransfer.getData(DRAG_DATA_DRAGGABLE_ID)
 		const fromColumnId = e.dataTransfer.getData(DRAG_DATA_FROM_COLUMN_ID)
-		const fromIndex = e.dataTransfer.getData(DRAG_DATA_FROM_INDEX)
+		const fromIndex = parseInt(e.dataTransfer.getData(DRAG_DATA_FROM_INDEX))
+		var toIndex = parseInt(e.dataTransfer.getData(DRAG_DATA_TO_INDEX))
 		// recalculate div info
-		const info = DOMUtils.getVisiblePlaceholderInfo(e, myId, props.direction)
-		const to = {droppableId: props.droppableId, index: info.index}
-		const from = {droppableId: fromColumnId, index: parseInt(fromIndex)}
+		if (!toIndex) {
+			const info = DOMUtils.getVisiblePlaceholderInfo(e, myId, props.direction)
+			toIndex = info.index
+		}
+
+		const to = {droppableId: props.droppableId, index: toIndex}
+		const from = {droppableId: fromColumnId, index: fromIndex}
 		setDraggingOver(false)
 		props.onDrop({dragId: payloadId, to, from})
 		dragContext.clearPlaceholders()
@@ -120,8 +131,14 @@ function Droppable(props: Props) {
 		<DroppableContext droppableId={myId} droppableName={props.droppableId}>
 			{props.children(
 				{
-					droppableProps: {ref: watcherRef, onDragOver: onDragOver},
-					draggableProps: {columnId: myId, columnName: props.droppableId},
+					droppableProps: {
+						ref: watcherRef,
+						onDragOver: onDragOver,
+						id: myId,
+						['aria-orientation']: props.direction,
+						['role']: 'tree',
+						accepts: props.accepts,
+					},
 					placeholder: dragContext.placeholderInfo.id === myId ? dragContext.placeholder : undefined,
 				},
 				{isDraggingOver: draggingOver},

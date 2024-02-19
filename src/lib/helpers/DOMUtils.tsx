@@ -5,28 +5,32 @@ import {CSS_CLASS_PLACEHOLDER_HIDDEN, DATA_DRAGGABLE_COLUMN_ID} from './Constant
 export default class DOMUtils {
 	constructor() {}
 
-	static getAllItems = (columnId: string): Element[] => {
+	static getDOMElementsInDroppable = (columnId: string, extraFilters?: string): Element[] => {
 		return Array.from(
-			document.querySelectorAll(
-				`[${DATA_DRAGGABLE_COLUMN_ID}="${columnId}"]:not([style*="display: none"]):not(${CSS_CLASS_PLACEHOLDER_HIDDEN})`,
-			),
+			document.querySelectorAll(`[${DATA_DRAGGABLE_COLUMN_ID}="${columnId}"]:not([style*="display: none"])${extraFilters ? extraFilters : ''}`),
+		)
+	}
+
+	static getDOMElementsWithKeyword = (attribute: string, word: string) => {
+		return document.querySelectorAll(
+			`[${attribute}~=" ${word} "], [${attribute}^="${word} "], [${attribute}$=" ${word}"], [${attribute}="${word}"]`,
 		)
 	}
 
 	static getIndexOfItem = (columnId: string, itemId: string) => {
 		// find the index of specific item in this column
-		const draggables = this.getAllItems(columnId)
+		const draggables = this.getDOMElementsInDroppable(columnId)
 		return draggables.findIndex((d) => d.id === itemId)
 	}
 
 	static getItemAtIndex = (columnId: string, index: number): Element | undefined => {
-		return this.getAllItems(columnId)[index]
+		return this.getDOMElementsInDroppable(columnId)[index]
 	}
 
 	static getVisiblePlaceholderInfo = (e: React.DragEvent<any>, columnId: string, direction?: DroppableDirection): PlaceholderInfo => {
 		// here we get all of our tasks in the specific column, and figure out which tasks placeholder we should display (top or bottom)
-		// get all draggables in column
-		const draggables = this.getAllItems(columnId)
+		// get all draggables in column, and provide CSS class as an extra filter
+		const draggables = this.getDOMElementsInDroppable(columnId, `:not(${CSS_CLASS_PLACEHOLDER_HIDDEN})`)
 
 		// now we figure it out! Woohoo
 		const closest = draggables.reduce(
