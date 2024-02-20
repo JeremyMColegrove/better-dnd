@@ -116,8 +116,17 @@ function Draggable(props: Props) {
 		e.stopPropagation()
 
 		// check if it is a valid drag
+		//first check if child directly has drag-handle class
+		const target = e.target as HTMLElement
+		var handle = undefined
+		console.log(target.classList)
+		if (target.classList.contains('drag-handle')) {
+			handle = childRef.current
+		} else {
+			handle = target.querySelector(`.drag-handle`)
+		}
 		//@ts-ignore
-		const handleRect = e.target.querySelector(`.drag-handle`)?.getBoundingClientRect()
+		const handleRect = handle.getBoundingClientRect()
 		const valid =
 			e.clientX >= handleRect.x &&
 			e.clientX <= handleRect.x + handleRect.width &&
