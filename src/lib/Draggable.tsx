@@ -3,7 +3,7 @@ import {useDragContext} from './DragDropContext'
 import DOMUtils from './helpers/DOMUtils'
 import useRandomID from './helpers/randomId.hook'
 import {useDroppableContext} from './DroppableContext'
-import {DATA_DRAGGABLE_COLUMN_ID, DRAG_DATA_DRAGGABLE_TYPE, horizontalKeyMapping, verticalKeyMapping} from './Constants'
+import {DATA_DRAGGABLE_COLUMN_ID, DRAG_DATA_DRAGGABLE_TYPE, DragActions, defaultKeyboardAccessibilityMapping} from './Constants'
 
 type DragEventFunction = (e: React.DragEvent<any>) => any
 type KeyEventFunction = (e: React.KeyboardEvent<any>) => any
@@ -156,22 +156,42 @@ function Draggable(props: Props) {
 		dragContext.setIsDroppable(false)
 	}
 
+	const onKeyUp = () => {
+		keyPressed.current = false
+	}
+
 	// Handle Accesibility shortcuts
 	const onKeyDown = (e: React.KeyboardEvent<any>) => {
 		if (keyPressed.current || document.activeElement !== childRef.current) return
 
-		if (e.shiftKey && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+		// check if current key mapping has the key pressed
+		// check shift and ctrl keys match mapped
+		if (
+			dragContext.keyBindMap.current[e.key] &&
+			dragContext.keyBindMap.current.ctrlKey === e.ctrlKey &&
+			dragContext.keyBindMap.current.shiftKey === e.shiftKey
+		) {
 			const droppableElement = document.getElementById(droppableContext.droppableId)
-			var keyboardMapping = droppableElement?.ariaOrientation === 'horizontal' ? horizontalKeyMapping : verticalKeyMapping
+			var keyboardMapping = dragContext.keyBindMap.current
+
+			const horizontalShift: Record<DragActions, DragActions> = {
+				IndexIncrease: 'DroppableIncrease',
+				IndexDecrease: 'DroppableDecrease',
+				DroppableDecrease: 'IndexDecrease',
+				DroppableIncrease: 'IndexIncrease',
+			}
 
 			e.preventDefault()
 			keyPressed.current = true
+			const action =
+				droppableElement.ariaOrientation === 'horizontal' ? horizontalShift[keyboardMapping[e.key] as DragActions] : keyboardMapping[e.key]
+			console.log(action)
 			//@ts-ignore
-			switch (keyboardMapping[e.key]) {
-				case 'IndexDown':
+			switch (action) {
+				case 'IndexDecrease':
 					shiftIndex(-1)
 					break
-				case 'IndexUp':
+				case 'IndexIncrease':
 					shiftIndex(1)
 					break
 				case 'DroppableDecrease':
@@ -220,10 +240,6 @@ function Draggable(props: Props) {
 			bubbles: true,
 			cancelable: true,
 		})
-	}
-
-	const onKeyUp = () => {
-		keyPressed.current = false
 	}
 
 	useEffect(() => {

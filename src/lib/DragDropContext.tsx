@@ -1,6 +1,7 @@
 import React, {createContext, useContext, useEffect, useRef, useState} from 'react'
 import DOMUtils from './helpers/DOMUtils'
 import {DropProps, DroppableDirection} from './Droppable'
+import {KeyBindingMap, defaultKeyboardAccessibilityMapping} from './Constants'
 
 export interface PlaceholderInfo {
 	id: string
@@ -28,6 +29,7 @@ interface DragDropData {
 	}>
 	dropProps: React.MutableRefObject<RecursivePartial<DropProps>>
 	hiddenDuringDrag: React.MutableRefObject<boolean>
+	keyBindMap: React.MutableRefObject<KeyBindingMap>
 }
 
 const DragContext = createContext<DragDropData | undefined>(undefined)
@@ -41,10 +43,13 @@ export const useDragContext = () => {
 	return context
 }
 
-export const DragDropContext: React.FC<{
+interface DragDropContextProps {
 	children: React.ReactNode
 	placeholder?: (draggable: HTMLElement, type: string) => React.ReactElement
-}> = ({children, placeholder: __placeholder}) => {
+	keyBindMap?: KeyBindingMap
+}
+
+export const DragDropContext = (props: DragDropContextProps) => {
 	const [calculatedPlaceholder, setCalculatedPlaceholder] = useState<React.ReactElement>(<></>)
 	const [placeholderInfo, setPlaceholderInfo] = useState<PlaceholderInfo>({index: -1, id: ''})
 	const [isDroppable, setIsDroppable] = useState<boolean>(false)
@@ -53,11 +58,12 @@ export const DragDropContext: React.FC<{
 	const pointerPosition = useRef<{x: number; y: number}>({x: -1, y: -1})
 	const dropProps = useRef<RecursivePartial<DropProps>>({})
 	const hiddenDuringDrag = useRef<boolean>(false)
+	const keyBindMap = useRef<KeyBindingMap>(props.keyBindMap || defaultKeyboardAccessibilityMapping)
 
 	const value: DragDropData = {
 		placeholder: calculatedPlaceholder,
 		recalculatePlaceholder: (draggable: HTMLElement, type: string) =>
-			setCalculatedPlaceholder(__placeholder ? __placeholder(draggable, type) : <></>),
+			setCalculatedPlaceholder(props.placeholder ? props.placeholder(draggable, type) : <></>),
 		placeholderInfo: placeholderInfo,
 		setPlaceholderInfo: (info: PlaceholderInfo) => setPlaceholderInfo(() => info),
 		updateActivePlaceholder: (e: React.DragEvent<any>, columnId: string, direction?: DroppableDirection) => {
@@ -73,6 +79,7 @@ export const DragDropContext: React.FC<{
 		pointerPosition: pointerPosition,
 		dropProps: dropProps,
 		hiddenDuringDrag: hiddenDuringDrag,
+		keyBindMap: keyBindMap,
 	}
 
 	// always update the mouse pointer position during a drag
@@ -89,5 +96,5 @@ export const DragDropContext: React.FC<{
 		}
 	}, [])
 
-	return <DragContext.Provider value={value}>{children}</DragContext.Provider>
+	return <DragContext.Provider value={value}>{props.children}</DragContext.Provider>
 }
