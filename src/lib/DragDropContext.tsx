@@ -1,4 +1,4 @@
-import React, {createContext, useContext, useRef, useState} from 'react'
+import React, {createContext, useContext, useEffect, useRef, useState} from 'react'
 import DOMUtils from './helpers/DOMUtils'
 import {DroppableDirection} from './Droppable'
 
@@ -64,6 +64,21 @@ export const DragDropContext: React.FC<{
 		isDraggingDraggable: isDraggingDraggable,
 		pointerPosition: pointerPosition,
 	}
+
+	// always update the mouse pointer position during a drag
+	useEffect(() => {
+		const updatePointer = (e: React.DragEvent<any>) => {
+			// console.log(e.clientX, e.clientY)
+			pointerPosition.current = {x: e.clientX, y: e.clientY}
+		}
+
+		//@ts-ignore
+		window.addEventListener('dragover', updatePointer)
+		return () => {
+			//@ts-ignore
+			window.removeEventListener('dragover', updatePointer)
+		}
+	}, [])
 
 	return <DragContext.Provider value={value}>{children}</DragContext.Provider>
 }

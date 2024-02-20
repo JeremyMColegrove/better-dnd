@@ -15,9 +15,12 @@ import {
 } from './helpers/Constants'
 
 type DragEventFunction = (e: React.DragEvent<any>) => any
-// type GenericFunction = (...args: any[]) => any
 type KeyEventFunction = (e: React.KeyboardEvent<any>) => any
 
+/**
+ * These props should be spread onto the draggable element.
+ * @example {(provided, snapshot)=><div {...provided.draggableProps}.../>
+ */
 interface DraggableProps {
 	draggable: boolean
 	onDragStart: DragEventFunction | any
@@ -33,17 +36,66 @@ interface DraggableProps {
 	role: string
 }
 
-interface DragHandleProps {}
+/**
+ * This should be spread on whatever element you want to use as the drag handle.
+ * @example {(provided, snapshot)=><div {...provided.draggableProps}><div {...provided.dragHandle}></div></div>
+ */
+interface DragHandleProps {
+	onPointerDown: () => void
+	onPointerUp: () => void
+}
 
-interface SnapshotProps {
+/**
+ * Provides information about the current state of the draggable during its drag.
+ */
+interface Snapshot {
+	/**
+	 * Is the current draggable being dragged?
+	 */
 	isDragging: boolean
+	/**
+	 * Is the current draggable able to dropped in a valid container?
+	 */
 	isDroppable: boolean
 }
 
+/**
+ * Provides spreadable props to spread onto its children to enable functionality.
+ * @see DraggableProps
+ * @see DragHandleProps
+ */
+interface Provided {
+	/**
+	 * Spread this prop on the child you want to enable drag functionality.
+	 */
+	draggableProps: DraggableProps
+	/**
+	 * Spread this prop on the element you want to use as the drag handle.
+	 */
+	dragHandle: DragHandleProps
+}
+
 interface Props {
-	children: (provided: {draggableProps: DraggableProps; dragHandle: DragHandleProps}, snapshot: SnapshotProps) => React.ReactElement
+	/**
+	 *
+	 * @param provided Provided
+	 * @param snapshot Snapshot
+	 * @returns React.ReactElement
+	 */
+	children: (provided: Provided, snapshot: Snapshot) => React.ReactElement
+	/**
+	 * Can this draggable be dragged?
+	 */
 	disabled?: boolean
+	/**
+	 * The unique ID of this draggable. This will be passed into the onDrop function when the draggable is dropped.
+	 * @see onDrop
+	 */
 	dragId: string
+	/**
+	 * The type of this draggable. Multiple types are not supported.
+	 * @example type="task"
+	 */
 	type: string
 }
 
@@ -87,17 +139,15 @@ function Draggable(props: Props) {
 
 	// we should not use onDragStart here, because styles get updated in column on drag over, so there is glitch that happens for second
 	const onDrag = (e: React.DragEvent<any>) => {
+		e.stopPropagation()
 		if (!dragging) {
 			setDragging(true)
 		}
-		// update mouse cursor when dragging, otherwise we don't care
-		dragContext.pointerPosition.current = {x: e.clientX, y: e.clientY}
-
-		// check if can drop
-		e.stopPropagation()
 	}
 
 	const onDrop = (e: React.DragEvent<any>) => {
+		e.stopPropagation()
+
 		startTransition(() => {
 			setDragging(false)
 			setLocalPlaceholder(false)
@@ -105,7 +155,6 @@ function Draggable(props: Props) {
 		})
 
 		canDrag.current = false
-		e.stopPropagation()
 		dragContext.clearPlaceholders()
 		dragContext.isDraggingDraggable.current = false
 		dragContext.setIsDroppable(false)
