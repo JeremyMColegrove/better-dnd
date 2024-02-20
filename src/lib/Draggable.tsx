@@ -3,16 +3,7 @@ import {useDragContext} from './DragDropContext'
 import DOMUtils from './helpers/DOMUtils'
 import useRandomID from './helpers/randomId.hook'
 import {useDroppableContext} from './DroppableContext'
-import {
-	DATA_DRAGGABLE_COLUMN_ID,
-	DRAG_DATA_DRAGGABLE_ID,
-	DRAG_DATA_DRAGGABLE_TYPE,
-	DRAG_DATA_FROM_COLUMN_ID,
-	DRAG_DATA_FROM_INDEX,
-	DRAG_DATA_TO_INDEX,
-	horizontalKeyMapping,
-	verticalKeyMapping,
-} from './helpers/Constants'
+import {DATA_DRAGGABLE_COLUMN_ID, DRAG_DATA_DRAGGABLE_TYPE, horizontalKeyMapping, verticalKeyMapping} from './helpers/Constants'
 
 type DragEventFunction = (e: React.DragEvent<any>) => any
 type KeyEventFunction = (e: React.KeyboardEvent<any>) => any
@@ -34,6 +25,7 @@ interface DraggableProps {
 	id: string
 	tabIndex: number
 	role: string
+	['aria-grabbed']: boolean
 }
 
 /**
@@ -84,10 +76,6 @@ interface Props {
 	 */
 	children: (provided: Provided, snapshot: Snapshot) => React.ReactElement
 	/**
-	 * Can this draggable be dragged?
-	 */
-	disabled?: boolean
-	/**
 	 * The unique ID of this draggable. This will be passed into the onDrop function when the draggable is dropped.
 	 * @see onDrop
 	 */
@@ -97,6 +85,16 @@ interface Props {
 	 * @example type="task"
 	 */
 	type: string
+	/**
+	 * Can this draggable be dragged?
+	 */
+	disabled?: boolean
+	/**
+	 * Whether this draggable will have it's display hidden during drag (identified by aria-grabbed).
+	 * This boolean ignores this element from the list when calculating drop position, and index.
+	 * @default false
+	 */
+	hiddenDuringDrag?: boolean
 }
 
 function Draggable(props: Props) {
@@ -111,7 +109,7 @@ function Draggable(props: Props) {
 
 	const droppableContext = useDroppableContext()
 
-	const initDrag = (e: React.DragEvent<HTMLElement>) => {
+	const initDrag = (e: React.DragEvent<any>) => {
 		if (!canDrag.current) {
 			e.preventDefault()
 		}
@@ -122,14 +120,12 @@ function Draggable(props: Props) {
 		childRef.current && dragContext.recalculatePlaceholder(childRef.current, props.type)
 		dragContext.isDraggingDraggable.current = true
 		// pre-set the placeholder to the element below this one
+		dragContext.hiddenDuringDrag.current = props.hiddenDuringDrag
 		// id of the draggable being dragged
-		e.dataTransfer.setData(DRAG_DATA_DRAGGABLE_ID, props.dragId)
 		// set previous droppable id
 		if (droppableContext) {
-			e.dataTransfer.setData(DRAG_DATA_FROM_COLUMN_ID, droppableContext.droppableName)
 			const indexOfItem = DOMUtils.getIndexOfItem(droppableContext.droppableId, myId)
-			// set previous droppable index
-			e.dataTransfer.setData(DRAG_DATA_FROM_INDEX, indexOfItem.toString())
+			dragContext.dropProps.current = {dragId: props.dragId, from: {droppableId: droppableContext.droppableName, index: indexOfItem}}
 		}
 
 		if (props.type) {
@@ -213,15 +209,16 @@ function Draggable(props: Props) {
 	}
 
 	const getDragEvent = (fromIndex: number, toIndex: number): DragEvent => {
-		const dataTransfer = new DataTransfer()
-		dataTransfer.setData(DRAG_DATA_DRAGGABLE_ID, props.dragId)
-		dataTransfer.setData(DRAG_DATA_FROM_INDEX, fromIndex.toString())
-		dataTransfer.setData(DRAG_DATA_FROM_COLUMN_ID, droppableContext.droppableName)
-		dataTransfer.setData(DRAG_DATA_TO_INDEX, toIndex.toString())
+		// update drag context drop props
+		dragContext.dropProps.current = {
+			dragId: props.dragId,
+			from: {droppableId: droppableContext.droppableName, index: fromIndex},
+			to: {index: toIndex},
+		}
+		// fire new event
 		return new DragEvent('drop', {
 			bubbles: true,
 			cancelable: true,
-			dataTransfer: dataTransfer,
 		})
 	}
 
@@ -257,6 +254,7 @@ function Draggable(props: Props) {
 						id: myId,
 						tabIndex: 0,
 						role: 'treeitem',
+						['aria-grabbed']: dragging,
 					},
 					dragHandle: {
 						onPointerDown: () => (canDrag.current = true),

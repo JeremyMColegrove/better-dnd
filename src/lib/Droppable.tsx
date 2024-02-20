@@ -4,13 +4,7 @@ import DOMUtils from './helpers/DOMUtils'
 import useDragster, {DragsterOptions} from 'react-dragster'
 import useRandomID from './helpers/randomId.hook'
 import {DroppableContext} from './DroppableContext'
-import {
-	DRAG_DATA_DRAGGABLE_ID,
-	DRAG_DATA_DRAGGABLE_TYPE,
-	DRAG_DATA_FROM_COLUMN_ID,
-	DRAG_DATA_FROM_INDEX,
-	DRAG_DATA_TO_INDEX,
-} from './helpers/Constants'
+import {DRAG_DATA_DRAGGABLE_TYPE} from './helpers/Constants'
 
 /**
  * Type of props during onDrop function
@@ -109,7 +103,7 @@ interface Props {
 	enhancedScrollDistance?: number
 }
 
-export const acceptsType = (event: React.DragEvent<HTMLDivElement>, accepts: string): boolean => {
+export const acceptsType = (event: React.DragEvent<any>, accepts: string): boolean => {
 	if (!accepts) return false
 	const acceptables = accepts.split(' ')
 
@@ -119,6 +113,18 @@ export const acceptsType = (event: React.DragEvent<HTMLDivElement>, accepts: str
 		}
 	}
 	return false
+}
+
+const defaultDropProp: DropProps = {
+	dragId: undefined,
+	from: {
+		droppableId: undefined,
+		index: undefined,
+	},
+	to: {
+		droppableId: undefined,
+		index: undefined,
+	},
 }
 
 // set default values here
@@ -134,24 +140,24 @@ function Droppable(props: Props) {
 	// TESTING to test pointer in bounding box method
 	const hoveringOver = useRef<boolean>(false)
 
-	const prepareDrop = (e: React.DragEvent<HTMLDivElement>) => {
-		const payloadId = e.dataTransfer.getData(DRAG_DATA_DRAGGABLE_ID)
-		const fromColumnId = e.dataTransfer.getData(DRAG_DATA_FROM_COLUMN_ID)
-		const fromIndex = parseInt(e.dataTransfer.getData(DRAG_DATA_FROM_INDEX))
-		var toIndex = parseInt(e.dataTransfer.getData(DRAG_DATA_TO_INDEX))
-		// recalculate div info
-		if (!toIndex) {
-			const info = DOMUtils.getVisiblePlaceholderInfo(e, myId, props.direction)
-			toIndex = info.index
+	const prepareDrop = (e: React.DragEvent<any>) => {
+		const dropProps = Object.assign(defaultDropProp, dragContext.dropProps.current)
+
+		if (!dropProps.to.index) {
+			dropProps.to.index = dragContext.placeholderInfo.index //DOMUtils.getVisiblePlaceholderInfo(e, myId, props.direction).index
 		}
 
-		const to = {droppableId: props.droppableId, index: toIndex}
-		const from = {droppableId: fromColumnId, index: fromIndex}
+		// set to column to this column
+		dropProps.to.droppableId = props.droppableId
+
+		// overwrite default drop props with context drop props
+		props.onDrop(dropProps)
+
+		dragContext.clearPlaceholders()
+		dragContext.dropProps.current = defaultDropProp
 		if (draggingOver) {
 			setDraggingOver(false)
 		}
-		props.onDrop({dragId: payloadId, to, from})
-		dragContext.clearPlaceholders()
 	}
 
 	const onDragOver = (e: React.DragEvent<any>) => {
@@ -286,7 +292,7 @@ function Droppable(props: Props) {
 						onDragOver: onDragOver,
 						onPointerEnter: () => (hoveringOver.current = true),
 						onPointerLeave: () => (hoveringOver.current = false),
-						handleScroll: (e) => e.preventDefault(),
+						onScroll: (e) => e.preventDefault(),
 						id: myId,
 						['aria-orientation']: props.direction,
 						['role']: 'tree',

@@ -6,9 +6,7 @@ export default class DOMUtils {
 	constructor() {}
 
 	static getDOMElementsInDroppable = (columnId: string, extraFilters?: string): Element[] => {
-		return Array.from(
-			document.querySelectorAll(`[${DATA_DRAGGABLE_COLUMN_ID}="${columnId}"]:not([style*="display: none"])${extraFilters ? extraFilters : ''}`),
-		)
+		return Array.from(document.querySelectorAll(`[${DATA_DRAGGABLE_COLUMN_ID}="${columnId}"]${extraFilters ? extraFilters : ''}`))
 	}
 
 	static getDOMElementsWithKeyword = (attribute: string, word: string) => {
@@ -27,12 +25,19 @@ export default class DOMUtils {
 		return this.getDOMElementsInDroppable(columnId)[index]
 	}
 
-	static getVisiblePlaceholderInfo = (e: React.DragEvent<any>, columnId: string, direction?: DroppableDirection): PlaceholderInfo => {
+	static getVisiblePlaceholderInfo = (
+		e: React.DragEvent<any>,
+		columnId: string,
+		direction?: DroppableDirection,
+		hideGrabbed?: boolean,
+	): PlaceholderInfo => {
 		// here we get all of our tasks in the specific column, and figure out which tasks placeholder we should display (top or bottom)
 		// get all draggables in column, and provide CSS class as an extra filter
-		const draggables = this.getDOMElementsInDroppable(columnId, `:not(${CSS_CLASS_PLACEHOLDER_HIDDEN})`)
-
-		// now we figure it out! Woohoo
+		const draggables = this.getDOMElementsInDroppable(
+			columnId,
+			`${hideGrabbed ? ':not([aria-grabbed="true"])' : ''}:not(${CSS_CLASS_PLACEHOLDER_HIDDEN})`,
+		)
+		// calculate the closest item below us to place a placeholder on. If above, ignore.
 		const closest = draggables.reduce(
 			(closest, child, index) => {
 				const box = child.getBoundingClientRect()

@@ -1,10 +1,14 @@
 import React, {createContext, useContext, useEffect, useRef, useState} from 'react'
 import DOMUtils from './helpers/DOMUtils'
-import {DroppableDirection} from './Droppable'
+import {DropProps, DroppableDirection} from './Droppable'
 
 export interface PlaceholderInfo {
 	id: string
 	index: number
+}
+
+type RecursivePartial<T> = {
+	[P in keyof T]?: RecursivePartial<T[P]>
 }
 
 interface DragDropData {
@@ -22,6 +26,8 @@ interface DragDropData {
 		x: number
 		y: number
 	}>
+	dropProps: React.MutableRefObject<RecursivePartial<DropProps>>
+	hiddenDuringDrag: React.MutableRefObject<boolean>
 }
 
 const DragContext = createContext<DragDropData | undefined>(undefined)
@@ -45,6 +51,8 @@ export const DragDropContext: React.FC<{
 	const droppableLastUpdated = useRef<number>(0)
 	const isDraggingDraggable = useRef<boolean>(false)
 	const pointerPosition = useRef<{x: number; y: number}>({x: -1, y: -1})
+	const dropProps = useRef<RecursivePartial<DropProps>>({})
+	const hiddenDuringDrag = useRef<boolean>(false)
 
 	const value: DragDropData = {
 		placeholder: calculatedPlaceholder,
@@ -52,10 +60,10 @@ export const DragDropContext: React.FC<{
 			setCalculatedPlaceholder(__placeholder ? __placeholder(draggable, type) : <></>),
 		placeholderInfo: placeholderInfo,
 		setPlaceholderInfo: (info: PlaceholderInfo) => setPlaceholderInfo(() => info),
-		updateActivePlaceholder: (e: React.DragEvent<HTMLDivElement>, columnId: string, direction?: DroppableDirection) => {
-			const info = DOMUtils.getVisiblePlaceholderInfo(e, columnId, direction)
+		updateActivePlaceholder: (e: React.DragEvent<any>, columnId: string, direction?: DroppableDirection) => {
+			const info = DOMUtils.getVisiblePlaceholderInfo(e, columnId, direction, hiddenDuringDrag.current)
 			if (info.index === placeholderInfo.index && info.id === placeholderInfo.id) return
-			setPlaceholderInfo(() => info)
+			setPlaceholderInfo(info)
 		},
 		clearPlaceholders: () => setPlaceholderInfo((prevInfo) => ({...prevInfo, id: ''})),
 		isDroppable: isDroppable,
@@ -63,6 +71,8 @@ export const DragDropContext: React.FC<{
 		droppableLastUpdated: droppableLastUpdated,
 		isDraggingDraggable: isDraggingDraggable,
 		pointerPosition: pointerPosition,
+		dropProps: dropProps,
+		hiddenDuringDrag: hiddenDuringDrag,
 	}
 
 	// always update the mouse pointer position during a drag
