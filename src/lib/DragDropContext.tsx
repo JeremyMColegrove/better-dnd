@@ -78,7 +78,6 @@ export const DragDropContext: React.FC<{
 	// always update the mouse pointer position during a drag
 	useEffect(() => {
 		const updatePointer = (e: React.DragEvent<any>) => {
-			// console.log(e.clientX, e.clientY)
 			pointerPosition.current = {x: e.clientX, y: e.clientY}
 		}
 

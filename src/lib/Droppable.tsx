@@ -4,7 +4,7 @@ import DOMUtils from './helpers/DOMUtils'
 import useDragster, {DragsterOptions} from 'react-dragster'
 import useRandomID from './helpers/randomId.hook'
 import {DroppableContext} from './DroppableContext'
-import {DRAG_DATA_DRAGGABLE_TYPE} from './helpers/Constants'
+import {DRAG_DATA_DRAGGABLE_TYPE} from './Constants'
 
 /**
  * Type of props during onDrop function
@@ -143,8 +143,8 @@ function Droppable(props: Props) {
 	const prepareDrop = (e: React.DragEvent<any>) => {
 		const dropProps = Object.assign(defaultDropProp, dragContext.dropProps.current)
 
-		if (!dropProps.to.index) {
-			dropProps.to.index = dragContext.placeholderInfo.index //DOMUtils.getVisiblePlaceholderInfo(e, myId, props.direction).index
+		if (dropProps.to.index == undefined || dropProps.to.index == -1) {
+			dropProps.to.index = dragContext.placeholderInfo.index // DOMUtils.getVisiblePlaceholderInfo(e, myId, props.direction).index
 		}
 
 		// set to column to this column

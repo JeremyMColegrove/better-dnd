@@ -1,6 +1,6 @@
 import {PlaceholderInfo} from '../DragDropContext'
 import {DroppableDirection} from '../Droppable'
-import {CSS_CLASS_PLACEHOLDER_HIDDEN, DATA_DRAGGABLE_COLUMN_ID} from './Constants'
+import {CSS_CLASS_PLACEHOLDER_HIDDEN, DATA_DRAGGABLE_COLUMN_ID} from '../Constants'
 
 export default class DOMUtils {
 	constructor() {}

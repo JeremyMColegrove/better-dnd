@@ -3,7 +3,7 @@ import {useDragContext} from './DragDropContext'
 import DOMUtils from './helpers/DOMUtils'
 import useRandomID from './helpers/randomId.hook'
 import {useDroppableContext} from './DroppableContext'
-import {DATA_DRAGGABLE_COLUMN_ID, DRAG_DATA_DRAGGABLE_TYPE, horizontalKeyMapping, verticalKeyMapping} from './helpers/Constants'
+import {DATA_DRAGGABLE_COLUMN_ID, DRAG_DATA_DRAGGABLE_TYPE, horizontalKeyMapping, verticalKeyMapping} from './Constants'
 
 type DragEventFunction = (e: React.DragEvent<any>) => any
 type KeyEventFunction = (e: React.KeyboardEvent<any>) => any
