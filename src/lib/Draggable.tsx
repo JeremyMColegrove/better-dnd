@@ -33,8 +33,9 @@ interface DraggableProps {
  * @example {(provided, snapshot)=><div {...provided.draggableProps}><div {...provided.dragHandle}></div></div>
  */
 interface DragHandleProps {
-	onPointerDown: () => void
-	onPointerUp: () => void
+	// onPointerDown: () => void
+	// onPointerUp: () => void
+	onDragStart: (e: React.DragEvent<HTMLElement>) => any
 }
 
 /**
@@ -104,17 +105,30 @@ function Draggable(props: Props) {
 	const [localPlaceholder, setLocalPlaceholder] = useState<boolean>(false)
 	const [refresh, setRefresh] = useState<number>(1)
 	const childRef = useRef<HTMLElement>()
-	const canDrag = useRef<boolean>(false)
+	const dragHandleRef = useRef<HTMLElement>()
+
+	// const canDrag = useRef<boolean>(false)
 	const keyPressed = useRef<boolean>(false)
 
 	const droppableContext = useDroppableContext()
 
 	const initDrag = (e: React.DragEvent<any>) => {
-		if (!canDrag.current) {
+		e.stopPropagation()
+
+		// check if it is a valid drag
+		//@ts-ignore
+		const handleRect = e.target.querySelector(`.drag-handle`)?.getBoundingClientRect()
+		const valid =
+			e.clientX >= handleRect.x &&
+			e.clientX <= handleRect.x + handleRect.width &&
+			e.clientY >= handleRect.y &&
+			e.clientY <= handleRect.y + handleRect.height
+
+		if (!valid) {
 			e.preventDefault()
+			return
 		}
 
-		e.stopPropagation()
 		if (dragging) return
 		// re-calculate placeholder
 		childRef.current && dragContext.recalculatePlaceholder(childRef.current, props.type)
@@ -143,14 +157,13 @@ function Draggable(props: Props) {
 
 	const onDrop = (e: React.DragEvent<any>) => {
 		e.stopPropagation()
-
 		startTransition(() => {
 			setDragging(false)
 			setLocalPlaceholder(false)
 			setRefresh((a) => a + 1)
 		})
-
-		canDrag.current = false
+		console.log('On drop fired')
+		// canDrag.current = false
 		dragContext.clearPlaceholders()
 		dragContext.isDraggingDraggable.current = false
 		dragContext.setIsDroppable(false)
@@ -185,7 +198,6 @@ function Draggable(props: Props) {
 			keyPressed.current = true
 			const action =
 				droppableElement.ariaOrientation === 'horizontal' ? horizontalShift[keyboardMapping[e.key] as DragActions] : keyboardMapping[e.key]
-			console.log(action)
 			//@ts-ignore
 			switch (action) {
 				case 'IndexDecrease':
@@ -272,10 +284,8 @@ function Draggable(props: Props) {
 						role: 'treeitem',
 						['aria-grabbed']: dragging,
 					},
-					dragHandle: {
-						onPointerDown: () => (canDrag.current = true),
-						onPointerUp: () => (canDrag.current = false),
-					},
+					//@ts-ignore
+					dragHandle: {},
 				},
 				{isDragging: dragging, isDroppable: dragging && dragContext.isDroppable},
 			)}
