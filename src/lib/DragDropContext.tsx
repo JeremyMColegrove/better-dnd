@@ -1,7 +1,7 @@
 import React, {createContext, useContext, useEffect, useRef, useState} from 'react'
-import DOMUtils from './helpers/DOMUtils'
-import {DropProps, DroppableDirection} from './Droppable'
+import DOMUtils from './helpers/utils'
 import {KeyBindingMap, defaultKeyboardAccessibilityMapping} from './Constants'
+import {DraggableType, DropProps, DroppableDirection} from './types'
 
 export interface PlaceholderInfo {
 	id: string
@@ -14,7 +14,7 @@ type RecursivePartial<T> = {
 
 interface DragDropData {
 	placeholder: React.ReactElement
-	recalculatePlaceholder: (draggable: HTMLElement, type: string) => void
+	recalculatePlaceholder: (draggable: HTMLElement, types: DraggableType[]) => void
 	placeholderInfo: PlaceholderInfo
 	setPlaceholderInfo: (info: PlaceholderInfo) => void
 	updateActivePlaceholder: (e: React.DragEvent<HTMLDivElement>, columnId: string, direction?: DroppableDirection) => void
@@ -45,7 +45,7 @@ export const useDragContext = () => {
 
 interface DragDropContextProps {
 	children: React.ReactNode
-	placeholder?: (draggable: HTMLElement, type: string) => React.ReactElement
+	placeholder?: (draggable: HTMLElement, types: string[]) => React.ReactElement
 	keyBindMap?: KeyBindingMap
 }
 
@@ -62,8 +62,17 @@ export const DragDropContext = (props: DragDropContextProps) => {
 
 	const value: DragDropData = {
 		placeholder: calculatedPlaceholder,
-		recalculatePlaceholder: (draggable: HTMLElement, type: string) =>
-			setCalculatedPlaceholder(props.placeholder ? props.placeholder(draggable, type) : <></>),
+		recalculatePlaceholder: (draggable: HTMLElement, types: DraggableType[]) =>
+			setCalculatedPlaceholder(
+				props.placeholder ? (
+					props.placeholder(
+						draggable,
+						types.flatMap((t) => t.key),
+					)
+				) : (
+					<></>
+				),
+			),
 		placeholderInfo: placeholderInfo,
 		setPlaceholderInfo: (info: PlaceholderInfo) => setPlaceholderInfo(() => info),
 		updateActivePlaceholder: (e: React.DragEvent<any>, columnId: string, direction?: DroppableDirection) => {
@@ -96,5 +105,10 @@ export const DragDropContext = (props: DragDropContextProps) => {
 		}
 	}, [])
 
-	return <DragContext.Provider value={value}>{props.children}</DragContext.Provider>
+	return (
+		<DragContext.Provider value={value}>
+			{Math.random() * 999}
+			{props.children}
+		</DragContext.Provider>
+	)
 }

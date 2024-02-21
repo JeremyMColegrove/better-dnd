@@ -1,6 +1,6 @@
 import {PlaceholderInfo} from '../DragDropContext'
-import {DroppableDirection} from '../Droppable'
 import {CSS_CLASS_PLACEHOLDER_HIDDEN, DATA_DRAGGABLE_COLUMN_ID} from '../Constants'
+import {DroppableDirection} from '../types'
 
 export default class DOMUtils {
 	constructor() {}
@@ -13,16 +13,6 @@ export default class DOMUtils {
 		return document.querySelectorAll(
 			`[${attribute}~=" ${word} "], [${attribute}^="${word} "], [${attribute}$=" ${word}"], [${attribute}="${word}"]`,
 		)
-	}
-
-	static getIndexOfItem = (columnId: string, itemId: string) => {
-		// find the index of specific item in this column
-		const draggables = this.getDOMElementsInDroppable(columnId)
-		return draggables.findIndex((d) => d.id === itemId)
-	}
-
-	static getItemAtIndex = (columnId: string, index: number): Element | undefined => {
-		return this.getDOMElementsInDroppable(columnId)[index]
 	}
 
 	static getVisiblePlaceholderInfo = (

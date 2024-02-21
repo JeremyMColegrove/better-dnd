@@ -1,9 +1,10 @@
 import React, {startTransition, useEffect, useRef, useState} from 'react'
 import {useDragContext} from './DragDropContext'
-import DOMUtils from './helpers/DOMUtils'
+import DOMUtils from './helpers/utils'
 import useRandomID from './helpers/randomId.hook'
 import {useDroppableContext} from './DroppableContext'
 import {DATA_DRAGGABLE_COLUMN_ID, DRAG_DATA_DRAGGABLE_TYPE, DragActions, defaultKeyboardAccessibilityMapping} from './Constants'
+import {DraggableType} from './types'
 
 type DragEventFunction = (e: React.DragEvent<any>) => any
 type KeyEventFunction = (e: React.KeyboardEvent<any>) => any
@@ -26,16 +27,6 @@ interface DraggableProps {
 	tabIndex: number
 	role: string
 	['aria-grabbed']: boolean
-}
-
-/**
- * This should be spread on whatever element you want to use as the drag handle.
- * @example {(provided, snapshot)=><div {...provided.draggableProps}><div {...provided.dragHandle}></div></div>
- */
-interface DragHandleProps {
-	// onPointerDown: () => void
-	// onPointerUp: () => void
-	onDragStart: (e: React.DragEvent<HTMLElement>) => any
 }
 
 /**
@@ -62,10 +53,6 @@ interface Provided {
 	 * Spread this prop on the child you want to enable drag functionality.
 	 */
 	draggableProps: DraggableProps
-	/**
-	 * Spread this prop on the element you want to use as the drag handle.
-	 */
-	dragHandle: DragHandleProps
 }
 
 interface Props {
@@ -82,10 +69,10 @@ interface Props {
 	 */
 	dragId: string
 	/**
-	 * The type of this draggable. Multiple types are not supported.
-	 * @example type="task"
+	 * The type of this draggable. Multiple types are supported.
+	 * @example type={[{key:'task'}, {key:'text/plain', value:'This is some data I want to drop!'}]}
 	 */
-	type: string
+	types: DraggableType[]
 	/**
 	 * Can this draggable be dragged?
 	 */
@@ -96,6 +83,20 @@ interface Props {
 	 * @default false
 	 */
 	hiddenDuringDrag?: boolean
+
+	/**
+	 * This tells the browser what kind of drag is happening, and may effect appearance of the drag.
+	@see effectAllowed 
+	*/
+	dropEffect?: 'none' | 'copy' | 'link' | 'move'
+	/**
+	 * This restricts the types of drags that are available for this draggable. If a drag is attempted with a type that is not supported, it will fail.
+	 * @default 'all'
+	 * @alias effectAllowed
+	 * @see dropEffect
+	 * {@link https://developer.mozilla.org/en-US/docs/Web/API/DataTransfer/effectAllowed MDN Reference}
+	 */
+	effectAllowed?: 'none' | 'copy' | 'link' | 'move' | 'copyLink' | 'copyMove' | 'linkMove' | 'all' | 'uninitialized'
 }
 
 function Draggable(props: Props) {
@@ -105,14 +106,11 @@ function Draggable(props: Props) {
 	const [localPlaceholder, setLocalPlaceholder] = useState<boolean>(false)
 	const [refresh, setRefresh] = useState<number>(1)
 	const childRef = useRef<HTMLElement>()
-	const dragHandleRef = useRef<HTMLElement>()
-
-	// const canDrag = useRef<boolean>(false)
 	const keyPressed = useRef<boolean>(false)
 
 	const droppableContext = useDroppableContext()
 
-	const initDrag = (e: React.DragEvent<any>) => {
+	const onDragStart = (e: React.DragEvent<any>) => {
 		e.stopPropagation()
 
 		// check if it is a valid drag
@@ -139,20 +137,25 @@ function Draggable(props: Props) {
 
 		if (dragging) return
 		// re-calculate placeholder
-		childRef.current && dragContext.recalculatePlaceholder(childRef.current, props.type)
+		childRef.current && dragContext.recalculatePlaceholder(childRef.current, props.types)
 		dragContext.isDraggingDraggable.current = true
 		// pre-set the placeholder to the element below this one
 		dragContext.hiddenDuringDrag.current = props.hiddenDuringDrag
 		// id of the draggable being dragged
 		// set previous droppable id
 		if (droppableContext) {
-			const indexOfItem = DOMUtils.getIndexOfItem(droppableContext.droppableId, myId)
+			const indexOfItem = DOMUtils.getDOMElementsInDroppable(droppableContext.droppableId).findIndex((item) => item.id === myId)
 			dragContext.dropProps.current = {dragId: props.dragId, from: {droppableId: droppableContext.droppableName, index: indexOfItem}}
 		}
 
-		if (props.type) {
-			e.dataTransfer.setData(DRAG_DATA_DRAGGABLE_TYPE(props.type), 'true')
+		for (var type of props.types) {
+			e.dataTransfer.setData(type.key, type.value)
 		}
+
+		// set drag type
+		e.dataTransfer.effectAllowed = props.effectAllowed ?? 'all'
+		e.dataTransfer.dropEffect = props.dropEffect ?? 'copy'
+		// e.dataTransfer.
 	}
 
 	// we should not use onDragStart here, because styles get updated in column on drag over, so there is glitch that happens for second
@@ -165,12 +168,9 @@ function Draggable(props: Props) {
 
 	const onDrop = (e: React.DragEvent<any>) => {
 		e.stopPropagation()
-		startTransition(() => {
-			setDragging(false)
-			setLocalPlaceholder(false)
-			setRefresh((a) => a + 1)
-		})
-		// canDrag.current = false
+		setDragging(false)
+		setLocalPlaceholder(false)
+		setRefresh((a) => a + 1)
 		dragContext.clearPlaceholders()
 		dragContext.isDraggingDraggable.current = false
 		dragContext.setIsDroppable(false)
@@ -205,7 +205,7 @@ function Draggable(props: Props) {
 			keyPressed.current = true
 			const action =
 				droppableElement.ariaOrientation === 'horizontal' ? horizontalShift[keyboardMapping[e.key] as DragActions] : keyboardMapping[e.key]
-			//@ts-ignore
+
 			switch (action) {
 				case 'IndexDecrease':
 					shiftIndex(-1)
@@ -214,10 +214,10 @@ function Draggable(props: Props) {
 					shiftIndex(1)
 					break
 				case 'DroppableDecrease':
-					shiftColumns(-1)
+					shiftColumn(-1)
 					break
 				case 'DroppableIncrease':
-					shiftColumns(1)
+					shiftColumn(1)
 					break
 				default:
 					break
@@ -230,24 +230,27 @@ function Draggable(props: Props) {
 		const thisIndex = itemsInThisColumn.findIndex((item) => item.id === myId)
 		if (thisIndex + direction < 0 || thisIndex + direction >= itemsInThisColumn.length) return
 		const droppableElement = document.getElementById(droppableContext.droppableId)
-		const event = getDragEvent(thisIndex, thisIndex + direction)
+		const event = getDragEvent('drop', thisIndex, thisIndex + direction)
 		droppableElement?.dispatchEvent(event)
 	}
 
-	const shiftColumns = (direction: 1 | -1) => {
+	const shiftColumn = (direction: 1 | -1) => {
 		const itemsInThisColumn = DOMUtils.getDOMElementsInDroppable(droppableContext.droppableId)
 		const thisIndex = itemsInThisColumn.findIndex((item) => item.id === myId)
 		// get all of the other droppables in the dom
-		var droppables = Array.from(DOMUtils.getDOMElementsWithKeyword('accepts', props.type))
+		var droppables = props.types.reduce((prev, next) => {
+			return [...Array.from(DOMUtils.getDOMElementsWithKeyword('accepts', next.key)), ...prev]
+		}, [])
+
 		var myDroppablesIndex = droppables.findIndex((droppable) => droppable.id === droppableContext.droppableId)
 		if (myDroppablesIndex + direction < 0 || myDroppablesIndex + direction >= droppables.length) return
 		// get list of items in destination column
 		var destinationItems = DOMUtils.getDOMElementsInDroppable(droppables[myDroppablesIndex + direction].id)
-		const event = getDragEvent(thisIndex, Math.min(thisIndex, destinationItems.length))
+		const event = getDragEvent('drop', thisIndex, Math.min(thisIndex, destinationItems.length))
 		droppables[myDroppablesIndex + direction].dispatchEvent(event)
 	}
 
-	const getDragEvent = (fromIndex: number, toIndex: number): DragEvent => {
+	const getDragEvent = (type: string, fromIndex: number, toIndex: number): DragEvent => {
 		// update drag context drop props
 		dragContext.dropProps.current = {
 			dragId: props.dragId,
@@ -255,7 +258,7 @@ function Draggable(props: Props) {
 			to: {index: toIndex},
 		}
 		// fire new event
-		return new DragEvent('drop', {
+		return new DragEvent(type, {
 			bubbles: true,
 			cancelable: true,
 		})
@@ -278,7 +281,7 @@ function Draggable(props: Props) {
 				{
 					draggableProps: {
 						draggable: props.disabled ? false : true,
-						onDragStart: initDrag,
+						onDragStart: onDragStart,
 						onDrag: onDrag,
 						onDragEnd: onDrop,
 						onKeyDown: onKeyDown,
@@ -291,8 +294,6 @@ function Draggable(props: Props) {
 						role: 'treeitem',
 						['aria-grabbed']: dragging,
 					},
-					//@ts-ignore
-					dragHandle: {},
 				},
 				{isDragging: dragging, isDroppable: dragging && dragContext.isDroppable},
 			)}

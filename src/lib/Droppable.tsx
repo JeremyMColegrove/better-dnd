@@ -1,52 +1,11 @@
 import React, {useEffect, useRef, useState} from 'react'
 import {useDragContext} from './DragDropContext'
-import DOMUtils from './helpers/DOMUtils'
+import Utils from './helpers/utils'
 import useDragster, {DragsterOptions} from 'react-dragster'
 import useRandomID from './helpers/randomId.hook'
 import {DroppableContext} from './DroppableContext'
 import {DRAG_DATA_DRAGGABLE_TYPE} from './Constants'
-
-/**
- * Type of props during onDrop function
- */
-export interface DropProps {
-	/**
-	 * The ID of the draggable that was dropped.
-	 */
-	dragId: string
-	/**
-	 * Information about the destination of the drop.
-	 */
-	to: {
-		/**
-		 * The ID of the droppable that the draggable is going to.
-		 */
-		droppableId: string
-		/**
-		 * The index where the draggable is trying to be placed.
-		 */
-		index: number
-	}
-	/**
-	 * Information about where the draggable came from.
-	 */
-	from: {
-		/**
-		 * The ID of the droppable that the draggable came from.
-		 */
-		droppableId: string
-		/**
-		 * The index of the draggable in the previous droppable.
-		 */
-		index: number
-	}
-}
-
-/**
- * The layout direction of the container.
- * @default vertical
- */
-export type DroppableDirection = 'horizontal' | 'vertical'
+import {DropProps, DroppableDirection} from './types'
 
 interface Props {
 	children: (
@@ -69,7 +28,7 @@ interface Props {
 	 * This is the string names of draggable type this droppable will accept. It expects the types as a string, with multiple types being seperated by a space.
 	 * @example accepts="tasks images"
 	 */
-	accepts: string
+	accepts: string[]
 	/**
 	 * The layout direction of the droppable, useful for keyboard accessibility.
 	 * @default vertical
@@ -103,12 +62,9 @@ interface Props {
 	enhancedScrollDistance?: number
 }
 
-export const acceptsType = (event: React.DragEvent<any>, accepts: string): boolean => {
-	if (!accepts) return false
-	const acceptables = accepts.split(' ')
-
+export const acceptsTypes = (event: React.DragEvent<any>, acceptables: string[]): boolean => {
 	for (const acceptable of acceptables) {
-		if (event.dataTransfer.types.includes(DRAG_DATA_DRAGGABLE_TYPE(acceptable))) {
+		if (acceptable.trim() != '' && event.dataTransfer.types.includes(DRAG_DATA_DRAGGABLE_TYPE(acceptable))) {
 			return true
 		}
 	}
@@ -144,7 +100,7 @@ function Droppable(props: Props) {
 		const dropProps = Object.assign(defaultDropProp, dragContext.dropProps.current)
 
 		if (dropProps.to.index == undefined || dropProps.to.index == -1) {
-			dropProps.to.index = dragContext.placeholderInfo.index // DOMUtils.getVisiblePlaceholderInfo(e, myId, props.direction).index
+			dropProps.to.index = dragContext.placeholderInfo.index
 		}
 
 		// set to column to this column
@@ -162,7 +118,8 @@ function Droppable(props: Props) {
 
 	const onDragOver = (e: React.DragEvent<any>) => {
 		// if this droppable can not accept the draggable, exit
-		if (!acceptsType(e, props.accepts)) return
+		if (!acceptsTypes(e, props.accepts)) return
+
 		// we can accept this drop, but don't call stopPropagation
 		// allow it to continue up the tree to the window to fire ondragover and update mouse coords
 		e.preventDefault()
@@ -205,19 +162,20 @@ function Droppable(props: Props) {
 		// this is to avoid flickering issues, since onDragLeave fires when dragging into a new droppable,
 		// even if that droppable is on top of this droppable. This makes the event very unreliably, so we must wait
 		// to see if another droppable (maybe this one) can accept the draggable before setting dragContext.setIsDroppable to false
-		if (acceptsType(e, props.accepts)) {
+		if (acceptsTypes(e, props.accepts)) {
 			startTimeout(dragContext.droppableLastUpdated.current)
 		}
 
 		// check if pointer is outside of boundaries, it is no longer over this element
 		if (!watcherRef.current || !props.enhancedScroll) return
+
 		const rect = watcherRef.current.getBoundingClientRect()
 		// there are false events here, we have to manually check if it is outside of the div
 		if (
-			e.clientX <= rect.left ||
-			e.clientX >= rect.left + watcherRef.current.clientWidth ||
-			e.clientY <= rect.top ||
-			e.clientY >= rect.top + watcherRef.current.clientHeight
+			e.clientX <= rect.x ||
+			e.clientX >= rect.x + watcherRef.current.clientWidth ||
+			e.clientY <= rect.y ||
+			e.clientY >= rect.y + watcherRef.current.clientHeight
 		) {
 			// outside of div position, turn off hovering
 			hoveringOver.current = false
@@ -226,8 +184,8 @@ function Droppable(props: Props) {
 
 	const exponentialScroll = (distanceFromEdge: number): number => {
 		// take the distance to the edge and then compute the resulting scroll speed
-		const dist = 10 - (distanceFromEdge * distanceFromEdge) / 625
-		return dist
+		// const dist = 10 - (distanceFromEdge * distanceFromEdge) / 625
+		return 1 + distanceFromEdge * distanceFromEdge * 10
 	}
 
 	const animateScroll = () => {
@@ -243,13 +201,14 @@ function Droppable(props: Props) {
 		const distanceFromLeft = dragContext.pointerPosition.current.x - watcherRef.current.getBoundingClientRect().left
 		const distanceFromRight = watcherRef.current.clientWidth - distanceFromLeft
 
+		var distance = props.enhancedScrollDistance || 75
 		// Adjust scroll speed based on the distance
-		const distanceY = Math.min(distanceFromTop, distanceFromBottom)
-		const distanceX = Math.min(distanceFromLeft, distanceFromRight)
+		const distanceY = 1 - Math.min(distanceFromTop, distanceFromBottom) / distance
+		const distanceX = 1 - Math.min(distanceFromLeft, distanceFromRight) / distance
+
 		var scrollSpeedX = props.enhancedScrollSpeedX?.(distanceX) || exponentialScroll(distanceX)
 		var scrollSpeedY = props.enhancedScrollSpeedY?.(distanceY) || exponentialScroll(distanceY)
 
-		var distance = props.enhancedScrollDistance || 75
 		// check if should scroll Y
 		if (distanceFromTop < distance) {
 			watcherRef.current.scrollTop -= scrollSpeedY
