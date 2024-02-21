@@ -119,7 +119,6 @@ function Draggable(props: Props) {
 		//first check if child directly has drag-handle class
 		const target = e.target as HTMLElement
 		var handle = undefined
-		console.log(target.classList)
 		if (target.classList.contains('drag-handle')) {
 			handle = childRef.current
 		} else {
@@ -171,7 +170,6 @@ function Draggable(props: Props) {
 			setLocalPlaceholder(false)
 			setRefresh((a) => a + 1)
 		})
-		console.log('On drop fired')
 		// canDrag.current = false
 		dragContext.clearPlaceholders()
 		dragContext.isDraggingDraggable.current = false

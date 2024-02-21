@@ -84,10 +84,10 @@ interface Props {
 	 * A custom function to determine the scrolling speed of the div.
 	 * @param distanceFromLeft the distance the mouse cursor is from the left edge of the droppable
 	 * @param distanceFromRight the distance the mouse cursor is from the right edge of the droppable
-	 * @default 3
+	 * @default Expontial (min 1 max 10)
 	 * @returns number
 	 */
-	enhancedScrollSpeedX?: (distanceFromLeft: number, distanceFromRight: number) => number
+	enhancedScrollSpeedX?: (distanceFromEdge: number) => number
 	/**
 	 * A custom function to determine the scrolling speed of the div.
 	 * @param distanceFromTop the distance the mouse cursor is from the top edge of the droppable
@@ -95,10 +95,10 @@ interface Props {
 	 * @default 3
 	 * @returns number
 	 */
-	enhancedScrollSpeedY?: (distanceFromTop: number, distanceFromBottom: number) => number
+	enhancedScrollSpeedY?: (distanceFromEdge: number) => number
 	/**
 	 * Set distance from the edge to engage enhanced scroll.
-	 * @default 50
+	 * @default 75
 	 */
 	enhancedScrollDistance?: number
 }
@@ -224,6 +224,12 @@ function Droppable(props: Props) {
 		}
 	}
 
+	const exponentialScroll = (distanceFromEdge: number): number => {
+		// take the distance to the edge and then compute the resulting scroll speed
+		const dist = 10 - (distanceFromEdge * distanceFromEdge) / 625
+		return dist
+	}
+
 	const animateScroll = () => {
 		if (!watcherRef.current || !dragContext.isDraggingDraggable.current || !hoveringOver.current || !props.enhancedScroll) {
 			animateScrollStarted.current = false // exiting loop, turn off this
@@ -238,10 +244,12 @@ function Droppable(props: Props) {
 		const distanceFromRight = watcherRef.current.clientWidth - distanceFromLeft
 
 		// Adjust scroll speed based on the distance
-		var scrollSpeedY = props.enhancedScrollSpeedY?.(distanceFromTop, distanceFromBottom) || 3
-		var scrollSpeedX = props.enhancedScrollSpeedX?.(distanceFromLeft, distanceFromRight) || 3
+		const distanceY = Math.min(distanceFromTop, distanceFromBottom)
+		const distanceX = Math.min(distanceFromLeft, distanceFromRight)
+		var scrollSpeedX = props.enhancedScrollSpeedX?.(distanceX) || exponentialScroll(distanceX)
+		var scrollSpeedY = props.enhancedScrollSpeedY?.(distanceY) || exponentialScroll(distanceY)
 
-		var distance = props.enhancedScrollDistance || 50
+		var distance = props.enhancedScrollDistance || 75
 		// check if should scroll Y
 		if (distanceFromTop < distance) {
 			watcherRef.current.scrollTop -= scrollSpeedY
