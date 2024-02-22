@@ -1,39 +1,51 @@
 import {createAction, createReducer, createSlice, PayloadAction} from '@reduxjs/toolkit'
 import {RootState} from '../store'
+import {DraggableType, DroppableDirection} from '../../types'
+import DOMUtils from '../../helpers/utils'
 
-const assignPlaceholder = createAction('placeholder/assign')
-
-interface PlaceholderState {
-	value: number
+export interface PlaceholderPositionState {
+	id?: string
+	index?: number
 }
 
-const initialState: PlaceholderState = {value: 0}
+interface PlaceholderRefreshProps {
+	clientX: number
+	clientY: number
+	columnId: string
+	direction: DroppableDirection
+	ignoreDraggable: boolean
+}
 
-// export const placeholderReducer = createReducer(initialState, (builder) => {
-// 	builder.addCase(assignPlaceholder, (state, action) => {
-// 		state.value = action.payload
-// 	})
-// })
+const initialState: PlaceholderPositionState = {}
 
-const placeholderSlice = createSlice({
-	name: 'placeholder',
+const placeholderPositionSlice = createSlice({
+	name: 'placeholder/position',
 	initialState,
 	reducers: {
-		increment: (state) => {
-			state.value += 1
+		refreshPlaceholderPosition: (state, action: PayloadAction<PlaceholderRefreshProps>) => {
+			const newState = DOMUtils.updatePlaceholderPosition(
+				action.payload.clientX,
+				action.payload.clientY,
+				action.payload.columnId,
+				action.payload.direction,
+				action.payload.ignoreDraggable,
+			)
+
+			// if nothing has changed, ignore it
+			if (newState.id !== state.id || newState.index !== state.index) {
+				return newState
+			}
+
+			return state
 		},
-		decrement: (state) => {
-			state.value -= 1
-		},
-		// Use the PayloadAction type to declare the contents of `action.payload`
-		incrementByAmount: (state, action: PayloadAction<number>) => {
-			state.value += action.payload
+		resetPlaceholderPosition: (state) => {
+			return initialState
 		},
 	},
 })
 
-export const {increment, decrement, incrementByAmount} = placeholderSlice.actions
+export const {refreshPlaceholderPosition, resetPlaceholderPosition} = placeholderPositionSlice.actions
 
-export const selectPlaceholder = (state: RootState) => state.placeholder.value
+export const selectPlaceholder = (state: RootState) => state.placeholderPosition
 
-export default placeholderSlice.reducer
+export default placeholderPositionSlice.reducer

@@ -5,11 +5,6 @@ import {DraggableType, DropProps, DroppableDirection} from './types'
 import {Provider} from 'react-redux'
 import {store} from './redux/store'
 
-export interface PlaceholderInfo {
-	id: string
-	index: number
-}
-
 type RecursivePartial<T> = {
 	[P in keyof T]?: RecursivePartial<T[P]>
 }
@@ -17,10 +12,6 @@ type RecursivePartial<T> = {
 interface DragDropData {
 	placeholder: React.ReactElement
 	recalculatePlaceholder: (draggable: HTMLElement, types: DraggableType[]) => void
-	placeholderInfo: PlaceholderInfo
-	setPlaceholderInfo: (info: PlaceholderInfo) => void
-	updateActivePlaceholder: (e: React.DragEvent<HTMLDivElement>, columnId: string, direction?: DroppableDirection) => void
-	clearPlaceholders: () => void
 	isDroppable: boolean
 	setIsDroppable: React.Dispatch<React.SetStateAction<boolean>>
 	droppableLastUpdated: React.MutableRefObject<number>
@@ -54,7 +45,6 @@ interface DragDropContextProps {
 export const DragDropContext = (props: DragDropContextProps) => {
 	const [calculatedPlaceholder, setCalculatedPlaceholder] = useState<React.ReactElement>(<></>)
 
-	const [placeholderInfo, setPlaceholderInfo] = useState<PlaceholderInfo>({index: -1, id: ''})
 	const [isDroppable, setIsDroppable] = useState<boolean>(false)
 	const droppableLastUpdated = useRef<number>(0)
 	const isDraggingDraggable = useRef<boolean>(false)
@@ -76,14 +66,7 @@ export const DragDropContext = (props: DragDropContextProps) => {
 					<></>
 				),
 			),
-		placeholderInfo: placeholderInfo,
-		setPlaceholderInfo: (info: PlaceholderInfo) => setPlaceholderInfo(() => info),
-		updateActivePlaceholder: (e: React.DragEvent<any>, columnId: string, direction?: DroppableDirection) => {
-			const info = DOMUtils.getVisiblePlaceholderInfo(e, columnId, direction, hiddenDuringDrag.current)
-			if (info.index === placeholderInfo.index && info.id === placeholderInfo.id) return
-			setPlaceholderInfo(info)
-		},
-		clearPlaceholders: () => setPlaceholderInfo((prevInfo) => ({...prevInfo, id: ''})),
+
 		isDroppable: isDroppable,
 		setIsDroppable: setIsDroppable,
 

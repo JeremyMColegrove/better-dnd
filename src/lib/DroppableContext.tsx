@@ -1,10 +1,5 @@
 import React, {createContext, useContext} from 'react'
 
-export interface PlaceholderInfo {
-	visibleId: string
-	index: number
-}
-
 interface DroppableContextProps {
 	droppableId: string
 	droppableName: string
@@ -31,6 +26,7 @@ export const DroppableContext: React.FC<{children: React.ReactNode; droppableId:
 				droppableId,
 				droppableName,
 			}}>
+			{Math.random() * 999}
 			{children}
 		</DropContext.Provider>
 	)

@@ -7,7 +7,7 @@ import {DATA_DRAGGABLE_COLUMN_ID, DRAG_DATA_DRAGGABLE_TYPE, DragActions, default
 import {DraggableType} from './types'
 import {connect} from 'react-redux'
 import {useAppDispatch, useAppSelector} from './redux/hooks'
-import {increment} from './redux/reducers/placeholderReducer'
+import {resetPlaceholderPosition} from './redux/reducers/placeholderReducer'
 
 type DragEventFunction = (e: React.DragEvent<any>) => any
 type KeyEventFunction = (e: React.KeyboardEvent<any>) => any
@@ -110,15 +110,15 @@ function Draggable(props: Props) {
 	const [refresh, setRefresh] = useState<number>(1)
 	const childRef = useRef<HTMLElement>()
 	const keyPressed = useRef<boolean>(false)
-	//@ts-ignore
-	const placeholderCount = useAppSelector((state) => state.placeholder.value)
-	const dispatch = useAppDispatch()
 
 	const droppableContext = useDroppableContext()
+	// redux state
+	const placeholderPosition = useAppSelector((state) => state.placeholderPosition)
+	const dispatch = useAppDispatch()
 
 	const onDragStart = (e: React.DragEvent<any>) => {
 		e.stopPropagation()
-		dispatch(increment())
+
 		// check if it is a valid drag
 		//first check if child directly has drag-handle class
 		const target = e.target as HTMLElement
@@ -177,7 +177,7 @@ function Draggable(props: Props) {
 		setDragging(false)
 		setLocalPlaceholder(false)
 		setRefresh((a) => a + 1)
-		dragContext.clearPlaceholders()
+		dispatch(resetPlaceholderPosition())
 		dragContext.isDraggingDraggable.current = false
 		dragContext.setIsDroppable(false)
 	}
@@ -272,19 +272,17 @@ function Draggable(props: Props) {
 
 	useEffect(() => {
 		setLocalPlaceholder(false)
-	}, [dragContext.placeholderInfo.id])
+	}, [placeholderPosition.id])
 
 	useEffect(() => {
 		if (dragging && !dragContext.isDroppable) {
-			dragContext.clearPlaceholders()
+			dispatch(resetPlaceholderPosition())
 		}
 	}, [dragContext.isDroppable])
 
 	return (
 		<>
-			{(dragContext.placeholderInfo.id === myId || localPlaceholder) && dragContext.placeholder}
-			{/* @ts-ignore */}
-			<p className="text-red-400">{placeholderCount}</p>
+			{(placeholderPosition.id === myId || localPlaceholder) && dragContext.placeholder}
 
 			{props.children(
 				{

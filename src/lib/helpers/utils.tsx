@@ -1,5 +1,5 @@
-import {PlaceholderInfo} from '../DragDropContext'
 import {CSS_CLASS_PLACEHOLDER_HIDDEN, DATA_DRAGGABLE_COLUMN_ID} from '../Constants'
+import {PlaceholderPositionState} from '../redux/reducers/placeholderReducer'
 import {DroppableDirection} from '../types'
 
 export default class DOMUtils {
@@ -15,17 +15,18 @@ export default class DOMUtils {
 		)
 	}
 
-	static getVisiblePlaceholderInfo = (
-		e: React.DragEvent<any>,
+	static updatePlaceholderPosition = (
+		clientX: number,
+		clientY: number,
 		columnId: string,
 		direction?: DroppableDirection,
-		hideGrabbed?: boolean,
-	): PlaceholderInfo => {
+		ignoreDraggable?: boolean,
+	): PlaceholderPositionState => {
 		// here we get all of our tasks in the specific column, and figure out which tasks placeholder we should display (top or bottom)
 		// get all draggables in column, and provide CSS class as an extra filter
 		const draggables = this.getDOMElementsInDroppable(
 			columnId,
-			`${hideGrabbed ? ':not([aria-grabbed="true"])' : ''}:not(${CSS_CLASS_PLACEHOLDER_HIDDEN})`,
+			`${ignoreDraggable ? ':not([aria-grabbed="true"])' : ''}:not(${CSS_CLASS_PLACEHOLDER_HIDDEN})`,
 		)
 		// calculate the closest item below us to place a placeholder on. If above, ignore.
 		const closest = draggables.reduce(
@@ -34,9 +35,9 @@ export default class DOMUtils {
 				var distance = -1
 				// default to vertical checking
 				if (direction == 'horizontal') {
-					distance = e.clientX - (box.right + box.left) / 2
+					distance = clientX - (box.right + box.left) / 2
 				} else {
-					distance = e.clientY - (box.top + box.bottom) / 2
+					distance = clientY - (box.top + box.bottom) / 2
 				}
 
 				if (distance < 0 && distance > closest.offset) {

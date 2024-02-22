@@ -6,6 +6,9 @@ import useRandomID from './helpers/randomId.hook'
 import {DroppableContext} from './DroppableContext'
 import {DRAG_DATA_DRAGGABLE_TYPE} from './Constants'
 import {DropProps, DroppableDirection} from './types'
+import {useAppSelector, useAppDispatch} from './redux/hooks'
+import DOMUtils from './helpers/utils'
+import {refreshPlaceholderPosition, resetPlaceholderPosition} from './redux/reducers/placeholderReducer'
 
 interface Props {
 	children: (
@@ -96,11 +99,21 @@ function Droppable(props: Props) {
 	// TESTING to test pointer in bounding box method
 	const hoveringOver = useRef<boolean>(false)
 
+	// redux state
+	const dispatch = useAppDispatch()
+	const placeholderPosition = useAppSelector((state) => state.placeholderPosition)
+
 	const prepareDrop = (e: React.DragEvent<any>) => {
 		const dropProps = Object.assign(defaultDropProp, dragContext.dropProps.current)
 
 		if (dropProps.to.index == undefined || dropProps.to.index == -1) {
-			dropProps.to.index = dragContext.placeholderInfo.index
+			dropProps.to.index = DOMUtils.updatePlaceholderPosition(
+				e.clientX,
+				e.clientY,
+				myId,
+				props.direction,
+				dragContext.hiddenDuringDrag.current,
+			).index
 		}
 
 		// set to column to this column
@@ -108,8 +121,7 @@ function Droppable(props: Props) {
 
 		// overwrite default drop props with context drop props
 		props.onDrop(dropProps)
-
-		dragContext.clearPlaceholders()
+		dispatch(resetPlaceholderPosition())
 		dragContext.dropProps.current = defaultDropProp
 		if (draggingOver) {
 			setDraggingOver(false)
@@ -126,7 +138,15 @@ function Droppable(props: Props) {
 		// update context and say this droppable can accept the draggable, so onLeave events don't fire and think the draggable can not be dropped
 		dragContext.droppableLastUpdated.current += 1
 		// refresh the dragContext placeholderInfo so the correct draggable shows its placeholder
-		dragContext.updateActivePlaceholder(e, myId, props.direction)
+		dispatch(
+			refreshPlaceholderPosition({
+				clientX: e.clientX,
+				clientY: e.clientY,
+				columnId: myId,
+				direction: props.direction,
+				ignoreDraggable: dragContext.hiddenDuringDrag.current,
+			}),
+		)
 		// if we are not currently draggingOver, set to true
 		if (!draggingOver) {
 			setDraggingOver(true)
@@ -265,7 +285,7 @@ function Droppable(props: Props) {
 						['role']: 'tree',
 						accepts: props.accepts,
 					},
-					placeholder: dragContext.placeholderInfo.id === myId ? dragContext.placeholder : undefined,
+					placeholder: placeholderPosition.id === myId ? dragContext.placeholder : undefined,
 				},
 				{isDraggingOver: draggingOver},
 			)}

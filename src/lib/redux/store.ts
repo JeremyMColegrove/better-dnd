@@ -1,9 +1,9 @@
 import {configureStore} from '@reduxjs/toolkit'
-import placeholderSlice from './reducers/placeholderReducer'
+import placeholderPositionSlice from './reducers/placeholderReducer'
 
 export const store = configureStore({
 	reducer: {
-		placeholder: placeholderSlice,
+		placeholderPosition: placeholderPositionSlice,
 	},
 })
 
