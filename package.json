@@ -40,6 +40,8 @@
 		"vite": "^5.1.0"
 	},
 	"dependencies": {
-		"react-dragster": "^1.1.4"
+		"@reduxjs/toolkit": "^2.2.1",
+		"react-dragster": "^1.1.4",
+		"react-redux": "^9.1.0"
 	}
 }

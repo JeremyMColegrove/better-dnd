@@ -2,6 +2,8 @@ import React, {createContext, useContext, useEffect, useRef, useState} from 'rea
 import DOMUtils from './helpers/utils'
 import {KeyBindingMap, defaultKeyboardAccessibilityMapping} from './Constants'
 import {DraggableType, DropProps, DroppableDirection} from './types'
+import {Provider} from 'react-redux'
+import {store} from './redux/store'
 
 export interface PlaceholderInfo {
 	id: string
@@ -51,6 +53,7 @@ interface DragDropContextProps {
 
 export const DragDropContext = (props: DragDropContextProps) => {
 	const [calculatedPlaceholder, setCalculatedPlaceholder] = useState<React.ReactElement>(<></>)
+
 	const [placeholderInfo, setPlaceholderInfo] = useState<PlaceholderInfo>({index: -1, id: ''})
 	const [isDroppable, setIsDroppable] = useState<boolean>(false)
 	const droppableLastUpdated = useRef<number>(0)
@@ -83,6 +86,7 @@ export const DragDropContext = (props: DragDropContextProps) => {
 		clearPlaceholders: () => setPlaceholderInfo((prevInfo) => ({...prevInfo, id: ''})),
 		isDroppable: isDroppable,
 		setIsDroppable: setIsDroppable,
+
 		droppableLastUpdated: droppableLastUpdated,
 		isDraggingDraggable: isDraggingDraggable,
 		pointerPosition: pointerPosition,
@@ -106,9 +110,11 @@ export const DragDropContext = (props: DragDropContextProps) => {
 	}, [])
 
 	return (
-		<DragContext.Provider value={value}>
-			{Math.random() * 999}
-			{props.children}
-		</DragContext.Provider>
+		<Provider store={store}>
+			<DragContext.Provider value={value}>
+				{Math.random() * 999}
+				{props.children}
+			</DragContext.Provider>
+		</Provider>
 	)
 }

@@ -5,6 +5,9 @@ import useRandomID from './helpers/randomId.hook'
 import {useDroppableContext} from './DroppableContext'
 import {DATA_DRAGGABLE_COLUMN_ID, DRAG_DATA_DRAGGABLE_TYPE, DragActions, defaultKeyboardAccessibilityMapping} from './Constants'
 import {DraggableType} from './types'
+import {connect} from 'react-redux'
+import {useAppDispatch, useAppSelector} from './redux/hooks'
+import {increment} from './redux/reducers/placeholderReducer'
 
 type DragEventFunction = (e: React.DragEvent<any>) => any
 type KeyEventFunction = (e: React.KeyboardEvent<any>) => any
@@ -107,12 +110,15 @@ function Draggable(props: Props) {
 	const [refresh, setRefresh] = useState<number>(1)
 	const childRef = useRef<HTMLElement>()
 	const keyPressed = useRef<boolean>(false)
+	//@ts-ignore
+	const placeholderCount = useAppSelector((state) => state.placeholder.value)
+	const dispatch = useAppDispatch()
 
 	const droppableContext = useDroppableContext()
 
 	const onDragStart = (e: React.DragEvent<any>) => {
 		e.stopPropagation()
-
+		dispatch(increment())
 		// check if it is a valid drag
 		//first check if child directly has drag-handle class
 		const target = e.target as HTMLElement
@@ -277,6 +283,9 @@ function Draggable(props: Props) {
 	return (
 		<>
 			{(dragContext.placeholderInfo.id === myId || localPlaceholder) && dragContext.placeholder}
+			{/* @ts-ignore */}
+			<p className="text-red-400">{placeholderCount}</p>
+
 			{props.children(
 				{
 					draggableProps: {
@@ -300,5 +309,15 @@ function Draggable(props: Props) {
 		</>
 	)
 }
+
+// const mapStateToProps = (state: any) => ({
+// 	placeholder: state.placeholder,
+// })
+
+// const mapDispatchToProps = {
+// 	setPlaceholder,
+// }
+
+// export default connect(mapStateToProps, mapDispatchToProps)(Draggable)
 
 export default Draggable
