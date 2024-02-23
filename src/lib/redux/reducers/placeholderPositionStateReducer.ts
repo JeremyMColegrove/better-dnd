@@ -1,6 +1,5 @@
-import {createAction, createReducer, createSlice, PayloadAction} from '@reduxjs/toolkit'
-import {RootState} from '../store'
-import {DraggableType, DroppableDirection} from '../../types'
+import {createSlice, PayloadAction} from '@reduxjs/toolkit'
+import {DroppableDirection} from '../../types'
 import DOMUtils from '../../helpers/utils'
 
 export interface PlaceholderPositionState {
@@ -18,11 +17,11 @@ interface PlaceholderRefreshProps {
 
 const initialState: PlaceholderPositionState = {}
 
-const placeholderPositionState = createSlice({
+const placeholderPositionSlice = createSlice({
 	name: 'placeholder/position',
 	initialState,
 	reducers: {
-		refreshPlaceholderPosition: (state, action: PayloadAction<PlaceholderRefreshProps>) => {
+		updatePlaceholderPosition: (state, action: PayloadAction<PlaceholderRefreshProps>) => {
 			const newState = DOMUtils.updatePlaceholderPosition(
 				action.payload.clientX,
 				action.payload.clientY,
@@ -44,6 +43,6 @@ const placeholderPositionState = createSlice({
 	},
 })
 
-export const {refreshPlaceholderPosition, resetPlaceholderPosition} = placeholderPositionState.actions
+export const {updatePlaceholderPosition, resetPlaceholderPosition} = placeholderPositionSlice.actions
 
-export default placeholderPositionState.reducer
+export default placeholderPositionSlice.reducer

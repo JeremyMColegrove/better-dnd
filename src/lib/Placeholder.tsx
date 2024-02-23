@@ -1,7 +1,7 @@
 import React, {useEffect, useRef} from 'react'
 import {useAppSelector} from './redux/hooks'
 import {useDragContext} from './DragDropContext'
-import {PlaceholderPositionState} from './redux/reducers/placeholderReducer'
+import {PlaceholderPositionState} from './redux/reducers/placeholderPositionStateReducer'
 
 interface Props {
 	id: string

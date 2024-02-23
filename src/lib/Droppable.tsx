@@ -8,7 +8,7 @@ import {DRAG_DATA_DRAGGABLE_TYPE} from './Constants'
 import {DropProps, DroppableDirection} from './types'
 import {useAppSelector, useAppDispatch} from './redux/hooks'
 import DOMUtils from './helpers/utils'
-import {refreshPlaceholderPosition, resetPlaceholderPosition} from './redux/reducers/placeholderReducer'
+import {updatePlaceholderPosition, resetPlaceholderPosition} from './redux/reducers/placeholderPositionStateReducer'
 import schedule from 'raf-schd'
 
 interface Props {
@@ -140,7 +140,7 @@ function Droppable(props: Props) {
 		dragContext.droppableLastUpdated.current += 1
 		// refresh the dragContext placeholderInfo so the correct draggable shows its placeholder
 		dispatch(
-			refreshPlaceholderPosition({
+			updatePlaceholderPosition({
 				clientX: e.clientX,
 				clientY: e.clientY,
 				columnId: myId,

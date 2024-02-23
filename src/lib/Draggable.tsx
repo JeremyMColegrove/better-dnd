@@ -6,8 +6,8 @@ import {useDroppableContext} from './DroppableContext'
 import {DATA_DRAGGABLE_COLUMN_ID, DragActions} from './Constants'
 import {DraggableType} from './types'
 import {useAppDispatch, useAppSelector} from './redux/hooks'
-import {resetPlaceholderPosition} from './redux/reducers/placeholderReducer'
-import {startDragging, stopDragging} from './redux/reducers/draggingReducer'
+import {resetPlaceholderPosition} from './redux/reducers/placeholderPositionStateReducer'
+import {startDrag, stopDrag} from './redux/reducers/dragStateReducer'
 
 type DragEventFunction = (e: React.DragEvent<any>) => any
 type KeyEventFunction = (e: React.KeyboardEvent<any>) => any
@@ -116,19 +116,32 @@ function Draggable(props: Props) {
 	const draggingState = useAppSelector((state) => state.draggingState)
 	const dispatch = useAppDispatch()
 
+	const lift = () => {
+		// re-calculate placeholder
+		childRef.current && dragContext.recalculatePlaceholder(childRef.current, props.types)
+		dragContext.isDraggingDraggable.current = true
+		// pre-set the placeholder to the element below this one
+		dragContext.hiddenDuringDrag.current = props.hiddenDuringDrag
+		// id of the draggable being dragged
+		// set previous droppable id
+		if (droppableContext) {
+			const indexOfItem = DOMUtils.getDOMElementsInDroppable(droppableContext.droppableId).findIndex((item) => item.id === myId)
+			dragContext.dropProps.current = {dragId: props.dragId, from: {droppableId: droppableContext.droppableName, index: indexOfItem}}
+		}
+	}
+
 	const onDragStart = (e: React.DragEvent<any>) => {
 		e.stopPropagation()
 
-		// check if it is a valid drag
-		// first check if child directly has drag-handle class
+		if (draggingState.dragging) return
+
+		// Check if it is a valid drag
+		// First, check if the child directly has the 'drag-handle' class
 		const target = e.target as HTMLElement
-		var handle = undefined
-		if (target.classList.contains('drag-handle')) {
-			handle = childRef.current
-		} else {
-			handle = target.querySelector(`.drag-handle`)
-		}
-		//@ts-ignore
+		const handle = target.classList.contains('drag-handle') ? childRef.current : target.querySelector('.drag-handle')
+
+		if (!handle) return
+
 		const handleRect = handle.getBoundingClientRect()
 		const valid =
 			e.clientX >= handleRect.x &&
@@ -141,35 +154,24 @@ function Draggable(props: Props) {
 			return
 		}
 
-		if (draggingState.dragging) return
-		// re-calculate placeholder
-		childRef.current && dragContext.recalculatePlaceholder(childRef.current, props.types)
-		dragContext.isDraggingDraggable.current = true
-		// pre-set the placeholder to the element below this one
-		dragContext.hiddenDuringDrag.current = props.hiddenDuringDrag
-		// id of the draggable being dragged
-		// set previous droppable id
-		if (droppableContext) {
-			const indexOfItem = DOMUtils.getDOMElementsInDroppable(droppableContext.droppableId).findIndex((item) => item.id === myId)
-			dragContext.dropProps.current = {dragId: props.dragId, from: {droppableId: droppableContext.droppableName, index: indexOfItem}}
-		}
-
-		for (var type of props.types) {
+		// Set data for drag types
+		for (const type of props.types) {
 			e.dataTransfer.setData(type.key, type.value)
 		}
 
-		// set drag type
+		// Set drag type
 		e.dataTransfer.effectAllowed = props.effectAllowed ?? 'all'
 		e.dataTransfer.dropEffect = props.dropEffect ?? 'copy'
-		// dispatch(startDragging(myId))
-		// finally lets update global state telling it we are dragging an item
+
+		lift()
 	}
 
 	// we should not use onDragStart here, because styles get updated in column on drag over, so there is glitch that happens for second
 	const onDrag = (e: React.DragEvent<any>) => {
 		e.stopPropagation()
+		// on the first drag event, lets make sure to set redux global state saying this is dragging
 		if (!draggingState.dragging) {
-			dispatch(startDragging(myId))
+			dispatch(startDrag(myId))
 		}
 	}
 
@@ -181,7 +183,7 @@ function Draggable(props: Props) {
 		dragContext.setIsDroppable(false)
 
 		// finally update redux with dragging state
-		dispatch(stopDragging())
+		dispatch(stopDrag())
 	}
 
 	const onKeyUp = () => {

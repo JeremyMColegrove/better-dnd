@@ -1,5 +1,5 @@
 import {CSS_CLASS_PLACEHOLDER_HIDDEN, DATA_DRAGGABLE_COLUMN_ID} from '../Constants'
-import {PlaceholderPositionState} from '../redux/reducers/placeholderReducer'
+import {PlaceholderPositionState} from '../redux/reducers/placeholderPositionStateReducer'
 import {DroppableDirection} from '../types'
 
 export default class DOMUtils {
