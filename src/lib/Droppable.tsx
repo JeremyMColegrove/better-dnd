@@ -9,6 +9,7 @@ import {DropProps, DroppableDirection} from './types'
 import {useAppSelector, useAppDispatch} from './redux/hooks'
 import DOMUtils from './helpers/utils'
 import {refreshPlaceholderPosition, resetPlaceholderPosition} from './redux/reducers/placeholderReducer'
+import schedule from 'raf-schd'
 
 interface Props {
 	children: (
@@ -247,19 +248,20 @@ function Droppable(props: Props) {
 			watcherRef.current.scrollLeft += scrollSpeedX
 		}
 
-		requestAnimationFrame(animateScroll)
+		schedule(animateScroll)()
 	}
+	const scheduleAnimateScroll = schedule(animateScroll)
 
 	const onDragEnter = () => {
 		hoveringOver.current = true
-		if (!animateScrollStarted.current || !props.enhancedScroll) {
-			requestAnimationFrame(animateScroll)
+		if (!animateScrollStarted.current) {
+			scheduleAnimateScroll()
 		}
 	}
 
 	useEffect(() => {
-		if (!animateScrollStarted.current || !props.enhancedScroll) {
-			requestAnimationFrame(animateScroll)
+		if (!animateScrollStarted.current) {
+			scheduleAnimateScroll()
 		}
 	}, [dragContext.isDraggingDraggable.current])
 

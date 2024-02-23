@@ -18,7 +18,7 @@ interface PlaceholderRefreshProps {
 
 const initialState: PlaceholderPositionState = {}
 
-const placeholderPositionSlice = createSlice({
+const placeholderPositionState = createSlice({
 	name: 'placeholder/position',
 	initialState,
 	reducers: {
@@ -38,14 +38,12 @@ const placeholderPositionSlice = createSlice({
 
 			return state
 		},
-		resetPlaceholderPosition: (state) => {
+		resetPlaceholderPosition: () => {
 			return initialState
 		},
 	},
 })
 
-export const {refreshPlaceholderPosition, resetPlaceholderPosition} = placeholderPositionSlice.actions
+export const {refreshPlaceholderPosition, resetPlaceholderPosition} = placeholderPositionState.actions
 
-export const selectPlaceholder = (state: RootState) => state.placeholderPosition
-
-export default placeholderPositionSlice.reducer
+export default placeholderPositionState.reducer

@@ -1,9 +1,11 @@
 import {configureStore} from '@reduxjs/toolkit'
-import placeholderPositionSlice from './reducers/placeholderReducer'
+import placeholderPositionState from './reducers/placeholderReducer'
+import draggingReducer from './reducers/draggingReducer'
 
 export const store = configureStore({
 	reducer: {
-		placeholderPosition: placeholderPositionSlice,
+		placeholderPosition: placeholderPositionState,
+		draggingState: draggingReducer,
 	},
 })
 

@@ -1,13 +1,13 @@
-import React, {startTransition, useEffect, useRef, useState} from 'react'
+import React, {useEffect, useRef, useState} from 'react'
 import {useDragContext} from './DragDropContext'
 import DOMUtils from './helpers/utils'
 import useRandomID from './helpers/randomId.hook'
 import {useDroppableContext} from './DroppableContext'
-import {DATA_DRAGGABLE_COLUMN_ID, DRAG_DATA_DRAGGABLE_TYPE, DragActions, defaultKeyboardAccessibilityMapping} from './Constants'
+import {DATA_DRAGGABLE_COLUMN_ID, DragActions} from './Constants'
 import {DraggableType} from './types'
-import {connect} from 'react-redux'
 import {useAppDispatch, useAppSelector} from './redux/hooks'
 import {resetPlaceholderPosition} from './redux/reducers/placeholderReducer'
+import {startDragging, stopDragging} from './redux/reducers/draggingReducer'
 
 type DragEventFunction = (e: React.DragEvent<any>) => any
 type KeyEventFunction = (e: React.KeyboardEvent<any>) => any
@@ -105,22 +105,22 @@ interface Props {
 function Draggable(props: Props) {
 	const dragContext = useDragContext()
 	const myId = useRandomID()
-	const [dragging, setDragging] = useState<boolean>(false)
-	const [localPlaceholder, setLocalPlaceholder] = useState<boolean>(false)
+	// const [dragging, setDragging] = useState<boolean>(false)
 	const [refresh, setRefresh] = useState<number>(1)
 	const childRef = useRef<HTMLElement>()
 	const keyPressed = useRef<boolean>(false)
-
 	const droppableContext = useDroppableContext()
+
 	// redux state
 	const placeholderPosition = useAppSelector((state) => state.placeholderPosition)
+	const draggingState = useAppSelector((state) => state.draggingState)
 	const dispatch = useAppDispatch()
 
 	const onDragStart = (e: React.DragEvent<any>) => {
 		e.stopPropagation()
 
 		// check if it is a valid drag
-		//first check if child directly has drag-handle class
+		// first check if child directly has drag-handle class
 		const target = e.target as HTMLElement
 		var handle = undefined
 		if (target.classList.contains('drag-handle')) {
@@ -141,7 +141,7 @@ function Draggable(props: Props) {
 			return
 		}
 
-		if (dragging) return
+		if (draggingState.dragging) return
 		// re-calculate placeholder
 		childRef.current && dragContext.recalculatePlaceholder(childRef.current, props.types)
 		dragContext.isDraggingDraggable.current = true
@@ -161,25 +161,27 @@ function Draggable(props: Props) {
 		// set drag type
 		e.dataTransfer.effectAllowed = props.effectAllowed ?? 'all'
 		e.dataTransfer.dropEffect = props.dropEffect ?? 'copy'
-		// e.dataTransfer.
+		// dispatch(startDragging(myId))
+		// finally lets update global state telling it we are dragging an item
 	}
 
 	// we should not use onDragStart here, because styles get updated in column on drag over, so there is glitch that happens for second
 	const onDrag = (e: React.DragEvent<any>) => {
 		e.stopPropagation()
-		if (!dragging) {
-			setDragging(true)
+		if (!draggingState.dragging) {
+			dispatch(startDragging(myId))
 		}
 	}
 
-	const onDrop = (e: React.DragEvent<any>) => {
+	const onDragEnd = (e: React.DragEvent<any>) => {
 		e.stopPropagation()
-		setDragging(false)
-		setLocalPlaceholder(false)
 		setRefresh((a) => a + 1)
 		dispatch(resetPlaceholderPosition())
 		dragContext.isDraggingDraggable.current = false
 		dragContext.setIsDroppable(false)
+
+		// finally update redux with dragging state
+		dispatch(stopDragging())
 	}
 
 	const onKeyUp = () => {
@@ -271,51 +273,45 @@ function Draggable(props: Props) {
 	}
 
 	useEffect(() => {
-		setLocalPlaceholder(false)
-	}, [placeholderPosition.id])
-
-	useEffect(() => {
-		if (dragging && !dragContext.isDroppable) {
+		if (draggingState.dragging && !dragContext.isDroppable) {
 			dispatch(resetPlaceholderPosition())
 		}
 	}, [dragContext.isDroppable])
 
 	return (
 		<>
-			{(placeholderPosition.id === myId || localPlaceholder) && dragContext.placeholder}
+			{placeholderPosition.id === myId && dragContext.placeholder}
 
 			{props.children(
 				{
 					draggableProps: {
 						draggable: props.disabled ? false : true,
+
+						// drag sensor
 						onDragStart: onDragStart,
 						onDrag: onDrag,
-						onDragEnd: onDrop,
+						onDragEnd: onDragEnd,
+
+						// keyboard sensor
 						onKeyDown: onKeyDown,
 						onKeyUp: onKeyUp,
+
 						ref: childRef,
 						key: refresh,
 						[DATA_DRAGGABLE_COLUMN_ID]: droppableContext.droppableId,
 						id: myId,
 						tabIndex: 0,
 						role: 'treeitem',
-						['aria-grabbed']: dragging,
+						['aria-grabbed']: draggingState.dragging && draggingState.id == myId,
 					},
 				},
-				{isDragging: dragging, isDroppable: dragging && dragContext.isDroppable},
+				{
+					isDragging: draggingState.dragging && draggingState.id == myId,
+					isDroppable: draggingState.dragging && draggingState.id == myId && dragContext.isDroppable,
+				},
 			)}
 		</>
 	)
 }
-
-// const mapStateToProps = (state: any) => ({
-// 	placeholder: state.placeholder,
-// })
-
-// const mapDispatchToProps = {
-// 	setPlaceholder,
-// }
-
-// export default connect(mapStateToProps, mapDispatchToProps)(Draggable)
 
 export default Draggable
