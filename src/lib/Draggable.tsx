@@ -8,6 +8,7 @@ import {DraggableType} from './types'
 import {useAppDispatch, useAppSelector} from './redux/hooks'
 import {resetPlaceholderPosition} from './redux/reducers/placeholderPositionStateReducer'
 import {startDrag, stopDrag} from './redux/reducers/dragStateReducer'
+import schedule from 'raf-schd'
 
 type DragEventFunction = (e: React.DragEvent<any>) => any
 type KeyEventFunction = (e: React.KeyboardEvent<any>) => any
@@ -81,13 +82,6 @@ interface Props {
 	 */
 	disabled?: boolean
 	/**
-	 * Whether this draggable will have it's display hidden during drag (identified by aria-grabbed).
-	 * This boolean ignores this element from the list when calculating drop position, and index.
-	 * @default false
-	 */
-	hiddenDuringDrag?: boolean
-
-	/**
 	 * This tells the browser what kind of drag is happening, and may effect appearance of the drag.
 	@see effectAllowed 
 	*/
@@ -110,19 +104,27 @@ function Draggable(props: Props) {
 	const childRef = useRef<HTMLElement>()
 	const keyPressed = useRef<boolean>(false)
 	const droppableContext = useDroppableContext()
+	const [showLocalPlaceholder, setShowLocalPlaceholder] = useState<boolean>(false)
 
-	// redux state
-	const placeholderPosition = useAppSelector((state) => state.placeholderPosition)
-	const draggingState = useAppSelector((state) => state.draggingState)
+	//@ts-ignore
+	const placeholderPosition = useAppSelector(
+		(state) => state.placeholderPosition,
+		(oldState, state) => {
+			if ((oldState?.id == myId && state?.id != myId) || (oldState?.id != myId && state?.id == myId)) {
+				return false
+			}
+			return true
+		},
+	)
+	const dragState = useAppSelector((state) => state.dragState)
 	const dispatch = useAppDispatch()
 
+	// This will calculate all of the data and set it accordingly in the redux store for the current lift
 	const lift = () => {
 		// re-calculate placeholder
 		childRef.current && dragContext.recalculatePlaceholder(childRef.current, props.types)
 		dragContext.isDraggingDraggable.current = true
 		// pre-set the placeholder to the element below this one
-		dragContext.hiddenDuringDrag.current = props.hiddenDuringDrag
-		// id of the draggable being dragged
 		// set previous droppable id
 		if (droppableContext) {
 			const indexOfItem = DOMUtils.getDOMElementsInDroppable(droppableContext.droppableId).findIndex((item) => item.id === myId)
@@ -133,7 +135,7 @@ function Draggable(props: Props) {
 	const onDragStart = (e: React.DragEvent<any>) => {
 		e.stopPropagation()
 
-		if (draggingState.dragging) return
+		if (dragState.dragging) return
 
 		// Check if it is a valid drag
 		// First, check if the child directly has the 'drag-handle' class
@@ -162,7 +164,6 @@ function Draggable(props: Props) {
 		// Set drag type
 		e.dataTransfer.effectAllowed = props.effectAllowed ?? 'all'
 		e.dataTransfer.dropEffect = props.dropEffect ?? 'copy'
-
 		lift()
 	}
 
@@ -170,8 +171,9 @@ function Draggable(props: Props) {
 	const onDrag = (e: React.DragEvent<any>) => {
 		e.stopPropagation()
 		// on the first drag event, lets make sure to set redux global state saying this is dragging
-		if (!draggingState.dragging) {
+		if (!dragState.dragging) {
 			dispatch(startDrag(myId))
+			setShowLocalPlaceholder(true)
 		}
 	}
 
@@ -181,9 +183,9 @@ function Draggable(props: Props) {
 		dispatch(resetPlaceholderPosition())
 		dragContext.isDraggingDraggable.current = false
 		dragContext.setIsDroppable(false)
-
 		// finally update redux with dragging state
 		dispatch(stopDrag())
+		setShowLocalPlaceholder(false)
 	}
 
 	const onKeyUp = () => {
@@ -275,15 +277,19 @@ function Draggable(props: Props) {
 	}
 
 	useEffect(() => {
-		if (draggingState.dragging && !dragContext.isDroppable) {
+		if (dragState.dragging && !dragContext.isDroppable) {
 			dispatch(resetPlaceholderPosition())
 		}
 	}, [dragContext.isDroppable])
 
+	useEffect(() => {
+		setShowLocalPlaceholder(false)
+	}, [dragState.dragging])
+
 	return (
 		<>
-			{placeholderPosition.id === myId && dragContext.placeholder}
-
+			{/* <Placeholder id={myId} /> */}
+			{(placeholderPosition.id === myId || showLocalPlaceholder) && dragContext.placeholder}
 			{props.children(
 				{
 					draggableProps: {
@@ -304,12 +310,12 @@ function Draggable(props: Props) {
 						id: myId,
 						tabIndex: 0,
 						role: 'treeitem',
-						['aria-grabbed']: draggingState.dragging && draggingState.id == myId,
+						['aria-grabbed']: dragState.dragging && dragState.id == myId,
 					},
 				},
 				{
-					isDragging: draggingState.dragging && draggingState.id == myId,
-					isDroppable: draggingState.dragging && draggingState.id == myId && dragContext.isDroppable,
+					isDragging: (dragState.dragging && dragState.id == myId) || showLocalPlaceholder,
+					isDroppable: dragState.dragging && dragState.id == myId && dragContext.isDroppable,
 				},
 			)}
 		</>

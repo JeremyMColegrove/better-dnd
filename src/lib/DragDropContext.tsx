@@ -21,7 +21,6 @@ interface DragDropData {
 		y: number
 	}>
 	dropProps: React.MutableRefObject<RecursivePartial<DropProps>>
-	hiddenDuringDrag: React.MutableRefObject<boolean>
 	keyBindMap: React.MutableRefObject<KeyBindingMap>
 }
 
@@ -50,7 +49,6 @@ export const DragDropContext = (props: DragDropContextProps) => {
 	const isDraggingDraggable = useRef<boolean>(false)
 	const pointerPosition = useRef<{x: number; y: number}>({x: -1, y: -1})
 	const dropProps = useRef<RecursivePartial<DropProps>>({})
-	const hiddenDuringDrag = useRef<boolean>(false)
 	const keyBindMap = useRef<KeyBindingMap>(props.keyBindMap || defaultKeyboardAccessibilityMapping)
 
 	const value: DragDropData = {
@@ -74,7 +72,6 @@ export const DragDropContext = (props: DragDropContextProps) => {
 		isDraggingDraggable: isDraggingDraggable,
 		pointerPosition: pointerPosition,
 		dropProps: dropProps,
-		hiddenDuringDrag: hiddenDuringDrag,
 		keyBindMap: keyBindMap,
 	}
 

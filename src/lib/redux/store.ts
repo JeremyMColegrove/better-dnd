@@ -5,7 +5,7 @@ import dragStateSlice from './reducers/dragStateReducer'
 export const store = configureStore({
 	reducer: {
 		placeholderPosition: placeholderPositionSlice,
-		draggingState: dragStateSlice,
+		dragState: dragStateSlice,
 	},
 })
 

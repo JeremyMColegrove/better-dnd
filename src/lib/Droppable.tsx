@@ -10,6 +10,7 @@ import {useAppSelector, useAppDispatch} from './redux/hooks'
 import DOMUtils from './helpers/utils'
 import {updatePlaceholderPosition, resetPlaceholderPosition} from './redux/reducers/placeholderPositionStateReducer'
 import schedule from 'raf-schd'
+import Placeholder from './Placeholder'
 
 interface Props {
 	children: (
@@ -102,19 +103,13 @@ function Droppable(props: Props) {
 
 	// redux state
 	const dispatch = useAppDispatch()
-	const placeholderPosition = useAppSelector((state) => state.placeholderPosition)
+	// const placeholderPosition = useAppSelector((state) => state.placeholderPosition)
 
-	const prepareDrop = (e: React.DragEvent<any>) => {
+	const onDrop = (e: React.DragEvent<any>) => {
 		const dropProps = Object.assign(defaultDropProp, dragContext.dropProps.current)
 
 		if (dropProps.to.index == undefined || dropProps.to.index == -1) {
-			dropProps.to.index = DOMUtils.updatePlaceholderPosition(
-				e.clientX,
-				e.clientY,
-				myId,
-				props.direction,
-				dragContext.hiddenDuringDrag.current,
-			).index
+			dropProps.to.index = DOMUtils.updatePlaceholderPosition(e.clientX, e.clientY, myId, props.direction).index
 		}
 
 		// set to column to this column
@@ -145,7 +140,6 @@ function Droppable(props: Props) {
 				clientY: e.clientY,
 				columnId: myId,
 				direction: props.direction,
-				ignoreDraggable: dragContext.hiddenDuringDrag.current,
 			}),
 		)
 		// if we are not currently draggingOver, set to true
@@ -269,7 +263,7 @@ function Droppable(props: Props) {
 	const watcherRef = useDragster({
 		dragsterLeave: onDragLeave,
 		dragsterEnter: onDragEnter,
-		dragsterDrop: prepareDrop,
+		dragsterDrop: onDrop,
 	})
 
 	return (
@@ -281,13 +275,12 @@ function Droppable(props: Props) {
 						onDragOver: onDragOver,
 						onPointerEnter: () => (hoveringOver.current = true),
 						onPointerLeave: () => (hoveringOver.current = false),
-						onScroll: (e) => e.preventDefault(),
 						id: myId,
 						['aria-orientation']: props.direction,
 						['role']: 'tree',
 						accepts: props.accepts,
 					},
-					placeholder: placeholderPosition.id === myId ? dragContext.placeholder : undefined,
+					placeholder: <Placeholder id={myId} />, //placeholderPosition.id === myId ? dragContext.placeholder : undefined,
 				},
 				{isDraggingOver: draggingOver},
 			)}

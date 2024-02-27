@@ -12,7 +12,6 @@ interface PlaceholderRefreshProps {
 	clientY: number
 	columnId: string
 	direction: DroppableDirection
-	ignoreDraggable: boolean
 }
 
 const initialState: PlaceholderPositionState = {}
@@ -27,7 +26,6 @@ const placeholderPositionSlice = createSlice({
 				action.payload.clientY,
 				action.payload.columnId,
 				action.payload.direction,
-				action.payload.ignoreDraggable,
 			)
 
 			// if nothing has changed, ignore it
