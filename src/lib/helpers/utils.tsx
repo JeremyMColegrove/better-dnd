@@ -24,10 +24,11 @@ export default class DOMUtils {
 		// here we get all of our tasks in the specific column, and figure out which tasks placeholder we should display (top or bottom)
 		// get all draggables in column, and provide CSS class as an extra filter
 		const draggables = this.getDOMElementsInDroppable(columnId, `:not(${CSS_CLASS_PLACEHOLDER_HIDDEN})`).filter((draggable) => {
-			const styles = draggable.computedStyleMap()
+			const styles = window.getComputedStyle(draggable)
+			// console.log(styles.display, styles.opacity)
 			// filter out any elements with display to none or 0 opacity
 			//@ts-expect-error
-			return styles.get('display') != 'none' && styles.get('opacity').value > 0
+			return styles.display != 'none' && styles.opacity > 0
 		})
 
 		// calculate the closest item below us to place a placeholder on. If above, ignore.

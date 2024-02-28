@@ -26,7 +26,6 @@ export const DroppableContext: React.FC<{children: React.ReactNode; droppableId:
 				droppableId,
 				droppableName,
 			}}>
-			{Math.random() * 999}
 			{children}
 		</DropContext.Provider>
 	)

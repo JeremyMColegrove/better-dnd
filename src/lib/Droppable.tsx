@@ -10,7 +10,6 @@ import {useAppSelector, useAppDispatch} from './redux/hooks'
 import DOMUtils from './helpers/utils'
 import {updatePlaceholderPosition, resetPlaceholderPosition} from './redux/reducers/placeholderPositionStateReducer'
 import schedule from 'raf-schd'
-import Placeholder from './Placeholder'
 
 interface Props {
 	children: (
@@ -100,7 +99,16 @@ function Droppable(props: Props) {
 
 	// TESTING to test pointer in bounding box method
 	const hoveringOver = useRef<boolean>(false)
-
+	//@ts-ignore
+	const placeholderPosition = useAppSelector(
+		(state) => state.placeholderPosition,
+		(oldState, state) => {
+			if ((oldState?.id == myId && state?.id != myId) || (oldState?.id != myId && state?.id == myId)) {
+				return false
+			}
+			return true
+		},
+	)
 	// redux state
 	const dispatch = useAppDispatch()
 	// const placeholderPosition = useAppSelector((state) => state.placeholderPosition)
@@ -280,7 +288,7 @@ function Droppable(props: Props) {
 						['role']: 'tree',
 						accepts: props.accepts,
 					},
-					placeholder: <Placeholder id={myId} />, //placeholderPosition.id === myId ? dragContext.placeholder : undefined,
+					placeholder: placeholderPosition.id === myId ? dragContext.placeholder : undefined,
 				},
 				{isDraggingOver: draggingOver},
 			)}

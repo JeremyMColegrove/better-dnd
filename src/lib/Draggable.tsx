@@ -288,8 +288,10 @@ function Draggable(props: Props) {
 
 	return (
 		<>
-			{/* <Placeholder id={myId} /> */}
-			{(placeholderPosition.id === myId || showLocalPlaceholder) && dragContext.placeholder}
+			{/* Regular placeholder */}
+			{placeholderPosition.id === myId && dragContext.placeholder}
+			{/* Placeholder as soon as start drag starts */}
+			{showLocalPlaceholder && !dragState.dragging && dragContext.placeholder}
 			{props.children(
 				{
 					draggableProps: {

@@ -91,10 +91,7 @@ export const DragDropContext = (props: DragDropContextProps) => {
 
 	return (
 		<Provider store={store}>
-			<DragContext.Provider value={value}>
-				{Math.random() * 999}
-				{props.children}
-			</DragContext.Provider>
+			<DragContext.Provider value={value}>{props.children}</DragContext.Provider>
 		</Provider>
 	)
 }
