@@ -123,13 +123,14 @@ function Droppable(props: Props) {
 		// set to column to this column
 		dropProps.to.droppableId = props.droppableId
 
-		// overwrite default drop props with context drop props
-		props.onDrop(dropProps)
 		dispatch(resetPlaceholderPosition())
 		dragContext.dropProps.current = defaultDropProp
 		if (draggingOver) {
 			setDraggingOver(false)
 		}
+
+		// we probably want to call this, and then on next state update, actually cancel drop and remove placeholder
+		props.onDrop(dropProps)
 	}
 
 	const onDragOver = (e: React.DragEvent<any>) => {

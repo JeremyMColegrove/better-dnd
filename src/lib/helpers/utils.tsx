@@ -25,7 +25,6 @@ export default class DOMUtils {
 		// get all draggables in column, and provide CSS class as an extra filter
 		const draggables = this.getDOMElementsInDroppable(columnId, `:not(${CSS_CLASS_PLACEHOLDER_HIDDEN})`).filter((draggable) => {
 			const styles = window.getComputedStyle(draggable)
-			// console.log(styles.display, styles.opacity)
 			// filter out any elements with display to none or 0 opacity
 			//@ts-expect-error
 			return styles.display != 'none' && styles.opacity > 0
