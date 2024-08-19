@@ -10,6 +10,7 @@ import {useAppSelector, useAppDispatch} from './redux/hooks'
 import DOMUtils from './helpers/utils'
 import {updatePlaceholderPosition, resetPlaceholderPosition} from './redux/reducers/placeholderPositionStateReducer'
 import schedule from 'raf-schd'
+import delay from './helpers/delay'
 
 interface Props {
 	children: (
@@ -113,6 +114,14 @@ function Droppable(props: Props) {
 	const dispatch = useAppDispatch()
 	// const placeholderPosition = useAppSelector((state) => state.placeholderPosition)
 
+	const delayedFinalizeDrop = delay(() => {
+		dispatch(resetPlaceholderPosition())
+		dragContext.dropProps.current = defaultDropProp
+		if (draggingOver) {
+			setDraggingOver(false)
+		}
+	})
+
 	const onDrop = (e: React.DragEvent<any>) => {
 		const dropProps = Object.assign(defaultDropProp, dragContext.dropProps.current)
 
@@ -123,14 +132,10 @@ function Droppable(props: Props) {
 		// set to column to this column
 		dropProps.to.droppableId = props.droppableId
 
-		dispatch(resetPlaceholderPosition())
-		dragContext.dropProps.current = defaultDropProp
-		if (draggingOver) {
-			setDraggingOver(false)
-		}
-
 		// we probably want to call this, and then on next state update, actually cancel drop and remove placeholder
 		props.onDrop(dropProps)
+		// wait one update frame to finalize stuff, to sync with user updating tasks
+		delayedFinalizeDrop()
 	}
 
 	const onDragOver = (e: React.DragEvent<any>) => {

@@ -9,6 +9,7 @@ import {useAppDispatch, useAppSelector} from './redux/hooks'
 import {resetPlaceholderPosition} from './redux/reducers/placeholderPositionStateReducer'
 import {startDrag, stopDrag} from './redux/reducers/dragStateReducer'
 import schedule from 'raf-schd'
+import delay from './helpers/delay'
 
 type DragEventFunction = (e: React.DragEvent<any>) => any
 type KeyEventFunction = (e: React.KeyboardEvent<any>) => any
@@ -177,8 +178,7 @@ function Draggable(props: Props) {
 		}
 	}
 
-	const onDragEnd = (e: React.DragEvent<any>) => {
-		e.stopPropagation()
+	const delayedDragEnd = delay(() => {
 		setRefresh((a) => a + 1)
 		dispatch(resetPlaceholderPosition())
 		dragContext.isDraggingDraggable.current = false
@@ -186,6 +186,12 @@ function Draggable(props: Props) {
 		// finally update redux with dragging state
 		dispatch(stopDrag())
 		setShowLocalPlaceholder(false)
+	})
+
+	const onDragEnd = (e: React.DragEvent<any>) => {
+		e.stopPropagation()
+		// wait one update frame to update, so it syncs with the users draggable updates
+		delayedDragEnd()
 	}
 
 	const onKeyUp = () => {
